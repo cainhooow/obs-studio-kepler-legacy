@@ -47,6 +47,7 @@ Expected working result:
 - `HEVC NVENC` is intentionally hidden in OBS for the validated GTX 660 target
 - The launcher name is `obs-studio-kepler-legacy`, not `obs`, so it can coexist with a normal OBS package
 - The legacy build stores its own settings separately from the normal OBS config by default
+- Linux virtual camera support is included through `linux-v4l2`, but it requires the system `v4l2loopback` module
 
 ## Quick Start
 
@@ -224,6 +225,10 @@ Build guide:
 
 - [`docs/BUILDING.md`](docs/BUILDING.md)
 
+Virtual camera guide:
+
+- [`docs/VIRTUAL_CAMERA.md`](docs/VIRTUAL_CAMERA.md)
+
 Engineering/build note:
 
 - [`docs/obs-nvenc-kepler-arch.md`](docs/obs-nvenc-kepler-arch.md)
@@ -255,6 +260,7 @@ This checks:
 - FFmpeg launcher version
 - NVIDIA driver visibility, when `nvidia-smi` is available
 - a real one-second `h264_nvenc` encode
+- Linux virtual camera status as an informational check
 
 ## Uninstall
 

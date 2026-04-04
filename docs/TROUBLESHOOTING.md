@@ -129,6 +129,62 @@ For the validated `GTX 660` target, that is the correct behavior.
 
 This project intentionally hides unsupported HEVC NVENC exposure in OBS so users do not pick a codec that the hardware cannot actually encode.
 
+## Virtual Camera Button Is Missing
+
+### Symptom
+
+- the OBS interface does not show virtual camera controls
+- `Start Virtual Camera` is unavailable
+
+### Cause
+
+On Linux, OBS only registers the virtual camera output when the `v4l2loopback` kernel module is available.
+
+If it is missing, OBS logs:
+
+```text
+v4l2loopback not installed, virtual camera not registered
+```
+
+### Fix
+
+Run:
+
+```bash
+./scripts/setup_virtual_camera_arch.sh --check
+```
+
+Then install the required host packages and module support:
+
+```bash
+sudo ./scripts/setup_virtual_camera_arch.sh --install-packages
+sudo ./scripts/setup_virtual_camera_arch.sh --load-module
+```
+
+For the full procedure, see:
+
+- [`VIRTUAL_CAMERA.md`](./VIRTUAL_CAMERA.md)
+
+## Virtual Camera Fails To Start
+
+### Symptom
+
+- the button exists, but OBS reports `Failed to start virtual camera`
+
+### Cause
+
+- the plugin is present, but `v4l2loopback` is not loaded correctly
+- another V4L2 loopback setup may already be holding the expected device
+
+### Fix
+
+Try:
+
+```bash
+sudo ./scripts/setup_virtual_camera_arch.sh --load-module
+./scripts/setup_virtual_camera_arch.sh --check
+```
+
 ## OBS Opens in Safe Mode After a Forced Termination
 
 ### Symptom

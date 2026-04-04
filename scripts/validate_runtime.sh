@@ -37,4 +37,30 @@ echo "==> FFmpeg NVENC encode test"
   -c:v h264_nvenc -f null -
 
 echo
+echo "==> Linux virtual camera status"
+if [[ -f "$ROOT_DIR/.local/obs-kepler/lib/obs-plugins/linux-v4l2.so" ]]; then
+  echo "linux-v4l2 plugin: present"
+else
+  echo "linux-v4l2 plugin: missing"
+fi
+
+if command -v modinfo >/dev/null 2>&1 && modinfo v4l2loopback >/dev/null 2>&1; then
+  echo "v4l2loopback metadata: available"
+else
+  echo "v4l2loopback metadata: unavailable"
+fi
+
+if command -v lsmod >/dev/null 2>&1 && lsmod | rg -q '^v4l2loopback\b'; then
+  echo "v4l2loopback module: loaded"
+else
+  echo "v4l2loopback module: not loaded"
+fi
+
+if command -v v4l2-ctl >/dev/null 2>&1; then
+  echo
+  echo "Visible V4L2 devices:"
+  v4l2-ctl --list-devices 2>/dev/null || true
+fi
+
+echo
 echo "Validation completed successfully."

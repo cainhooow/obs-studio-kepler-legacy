@@ -78,6 +78,16 @@ Default system install locations:
 - launchers: `/usr/local/bin/obs-studio-kepler-legacy` and `/usr/local/bin/ffmpeg-kepler-legacy`
 - desktop entry: `/usr/local/share/applications/obs-studio-kepler-legacy.desktop`
 
+## Virtual Camera on Linux
+
+This project already includes the OBS Linux virtual camera plugin.
+
+On Arch Linux, you still need the `v4l2loopback` kernel module on the host system for the virtual camera output to be registered.
+
+See:
+
+- [`VIRTUAL_CAMERA.md`](./VIRTUAL_CAMERA.md)
+
 ## 4. Separate Configuration
 
 This project intentionally keeps its OBS configuration separate from a normal OBS install.
@@ -120,6 +130,7 @@ This checks:
 - FFmpeg launcher startup
 - NVIDIA driver visibility
 - a real `h264_nvenc` encode test
+- Linux virtual camera status as an informational check
 
 ## 7. Build or Rebuild From Source
 
