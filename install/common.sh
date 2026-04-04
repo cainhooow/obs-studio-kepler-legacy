@@ -46,6 +46,10 @@ copy_runtime_tree() {
   cp -a "$root/bin" "$install_root/"
   cp -a "$root/docs" "$install_root/"
   cp -a "$root/README.md" "$install_root/"
+
+  if [[ -x "$root/scripts/make_bundle_relocatable.sh" ]]; then
+    "$root/scripts/make_bundle_relocatable.sh" "$install_root"
+  fi
 }
 
 install_icons() {

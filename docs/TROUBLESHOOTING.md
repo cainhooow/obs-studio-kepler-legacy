@@ -50,6 +50,39 @@ or:
 ./bin/ffmpeg-kepler-legacy
 ```
 
+## Recording Fails With `obs-ffmpeg-mux` Shared Library Errors
+
+### Symptom
+
+- recording fails to start
+- OBS shows an error mentioning `obs-ffmpeg-mux`
+- the message includes `error while loading shared libraries`
+- `libobs.so.0` or another local library cannot be opened
+
+### Cause
+
+The installed bundle may still contain helper binaries that were built with an absolute runpath from the original build machine.
+
+### Fix
+
+Apply the relocatable wrapper fix to the current bundle:
+
+```bash
+./scripts/make_bundle_relocatable.sh
+```
+
+If you already installed the bundle for your user, reinstall it so the fixed runtime is copied into the installed location:
+
+```bash
+./install.sh --user
+```
+
+If you installed it system-wide:
+
+```bash
+sudo ./install.sh --system
+```
+
 ## The Launcher Name Is Not Found
 
 ### Symptom

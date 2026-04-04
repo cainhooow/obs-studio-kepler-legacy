@@ -108,6 +108,10 @@ echo "==> Installing FFmpeg to $PREFIX"
 make install
 popd >/dev/null
 
+if [[ -x "$ROOT_DIR/scripts/make_bundle_relocatable.sh" ]]; then
+  "$ROOT_DIR/scripts/make_bundle_relocatable.sh" "$ROOT_DIR"
+fi
+
 export LD_LIBRARY_PATH="$PREFIX/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 
 echo "==> Validating NVENC encoders"

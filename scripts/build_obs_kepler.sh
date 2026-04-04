@@ -142,6 +142,10 @@ cmake --build "$BUILD_DIR" --parallel "$JOBS"
 echo "==> Installing OBS to $PREFIX"
 cmake --install "$BUILD_DIR"
 
+if [[ -x "$ROOT_DIR/scripts/make_bundle_relocatable.sh" ]]; then
+  "$ROOT_DIR/scripts/make_bundle_relocatable.sh" "$ROOT_DIR"
+fi
+
 cat <<EOF
 
 Build completed.
