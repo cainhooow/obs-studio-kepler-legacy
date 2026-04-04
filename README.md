@@ -69,8 +69,25 @@ To run a quick validation:
 Three usage modes are supported:
 
 - run directly from the extracted project folder
+- use the interactive setup wizard
 - install for the current user
 - install system-wide
+
+### Interactive Setup Wizard
+
+```bash
+./install.sh --all
+```
+
+This guided mode can:
+
+- build FFmpeg from source
+- build OBS from source
+- install the bundle
+- check and configure Linux virtual camera support on Arch Linux
+- run runtime validation
+
+It prompts before each step so users can skip anything they do not want.
 
 ### User Install
 

@@ -3,6 +3,7 @@
 This document explains the three supported ways to use this project:
 
 - run it directly from the extracted project folder
+- use the interactive setup wizard
 - install it for the current user
 - install it system-wide
 
@@ -17,6 +18,20 @@ or:
 ```bash
 sudo ./install.sh --system
 ```
+
+The guided setup entrypoint is:
+
+```bash
+./install.sh --all
+```
+
+That mode can walk a user through:
+
+- building FFmpeg from source
+- building OBS from source
+- installing the bundle
+- checking or configuring Arch Linux virtual camera support
+- running runtime validation
 
 ## 1. Run Directly From the Project Folder
 
