@@ -10,12 +10,14 @@ Usage:
   ./install.sh --user
   sudo ./install.sh --system
   ./install.sh --all
+  ./install.sh --clean-build-artifacts
 
 Options:
-  --user     Install for the current user under ~/.local
-  --system   Install system-wide under /opt and /usr/local
-  --all      Run the interactive setup wizard
-  -h, --help Show this help message
+  --user                   Install for the current user under ~/.local
+  --system                 Install system-wide under /opt and /usr/local
+  --all                    Run the interactive setup wizard
+  --clean-build-artifacts  Remove cached source/build trees under .cache/kepler-build
+  -h, --help               Show this help message
 
 Environment overrides:
   INSTALL_ROOT
@@ -27,6 +29,8 @@ EOF
 
 mode=""
 run_all=false
+clean_build_artifacts=false
+clean_build_artifacts_explicit=false
 
 ask_yes_no() {
   local prompt="$1"
@@ -127,6 +131,9 @@ run_install_mode() {
 run_all_wizard() {
   local install_mode=""
   local vcam_check_output=""
+  local built_ffmpeg=false
+  local built_obs=false
+  local cleanup_targets=()
 
   if [[ ! -t 0 ]]; then
     echo "The --all wizard requires an interactive terminal." >&2
@@ -141,6 +148,7 @@ run_all_wizard() {
   echo
   if ask_yes_no "Build FFmpeg from source?" "y"; then
     "$ROOT_DIR/scripts/build_ffmpeg_nvenc470.sh"
+    built_ffmpeg=true
   else
     echo "Skipping FFmpeg build."
   fi
@@ -148,6 +156,7 @@ run_all_wizard() {
   echo
   if ask_yes_no "Build OBS from source?" "y"; then
     "$ROOT_DIR/scripts/build_obs_kepler.sh"
+    built_obs=true
   else
     echo "Skipping OBS build."
   fi
@@ -196,6 +205,24 @@ run_all_wizard() {
     echo "Skipping runtime validation."
   fi
 
+  if [[ "$built_ffmpeg" == true || "$built_obs" == true ]]; then
+    if [[ "$built_ffmpeg" == true ]]; then
+      cleanup_targets+=("ffmpeg")
+    fi
+    if [[ "$built_obs" == true ]]; then
+      cleanup_targets+=("obs")
+    fi
+
+    echo
+    if [[ "$clean_build_artifacts_explicit" == true ]]; then
+      cleanup_build_artifacts "$ROOT_DIR" "${cleanup_targets[@]}"
+    elif ask_yes_no "Remove downloaded sources and temporary build artifacts now?" "n"; then
+      cleanup_build_artifacts "$ROOT_DIR" "${cleanup_targets[@]}"
+    else
+      echo "Keeping build artifacts under: $ROOT_DIR/.cache/kepler-build"
+    fi
+  fi
+
   echo
   echo "All selected setup steps are complete."
 }
@@ -219,6 +246,10 @@ while [[ $# -gt 0 ]]; do
     --all)
       run_all=true
       ;;
+    --clean-build-artifacts)
+      clean_build_artifacts=true
+      clean_build_artifacts_explicit=true
+      ;;
     -h|--help)
       usage
       exit 0
@@ -237,6 +268,11 @@ if [[ "$run_all" == true ]]; then
   exit 0
 fi
 
+if [[ -z "$mode" && "$clean_build_artifacts" == true ]]; then
+  cleanup_build_artifacts "$ROOT_DIR"
+  exit 0
+fi
+
 [[ -n "$mode" ]] || {
   usage >&2
   exit 1
@@ -252,3 +288,7 @@ case "$mode" in
     install_system_bundle "$ROOT_DIR"
     ;;
 esac
+
+if [[ "$clean_build_artifacts" == true ]]; then
+  cleanup_build_artifacts "$ROOT_DIR"
+fi

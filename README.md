@@ -83,11 +83,18 @@ This guided mode can:
 
 - build FFmpeg from source
 - build OBS from source
+- optionally remove downloaded sources and temporary build artifacts afterwards
 - install the bundle
 - check and configure Linux virtual camera support on Arch Linux
 - run runtime validation
 
 It prompts before each step so users can skip anything they do not want.
+
+If you want cleanup to happen automatically, use:
+
+```bash
+./install.sh --all --clean-build-artifacts
+```
 
 ### User Install
 

@@ -7,6 +7,47 @@ project_root() {
   cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd
 }
 
+cleanup_build_artifacts() {
+  local root="$1"
+  shift || true
+
+  local cleaned_any=false
+  local target=""
+  local build_root="$root/.cache/kepler-build"
+
+  if [[ $# -eq 0 ]]; then
+    set -- ffmpeg obs
+  fi
+
+  for target in "$@"; do
+    case "$target" in
+      ffmpeg|obs)
+        if [[ -e "$build_root/$target" ]]; then
+          rm -rf "$build_root/$target"
+          echo "Removed build artifacts: $build_root/$target"
+          cleaned_any=true
+        fi
+        ;;
+      *)
+        echo "Unknown build artifact target: $target" >&2
+        return 1
+        ;;
+    esac
+  done
+
+  if [[ "$cleaned_any" == true ]]; then
+    cat <<EOF
+Build artifact cleanup completed.
+
+Kept:
+  $root/.local/ffmpeg-nvenc470
+  $root/.local/obs-kepler
+EOF
+  else
+    echo "No matching build artifacts were found under: $build_root"
+  fi
+}
+
 require_root() {
   if [[ "${EUID:-$(id -u)}" -ne 0 ]]; then
     echo "Please run this script as root." >&2

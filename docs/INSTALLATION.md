@@ -29,9 +29,16 @@ That mode can walk a user through:
 
 - building FFmpeg from source
 - building OBS from source
+- optionally removing downloaded sources and temporary build artifacts after the build
 - installing the bundle
 - checking or configuring Arch Linux virtual camera support
 - running runtime validation
+
+If you want the installer to clean build artifacts automatically without asking, use:
+
+```bash
+./install.sh --all --clean-build-artifacts
+```
 
 ## 1. Run Directly From the Project Folder
 
@@ -162,6 +169,11 @@ Typical rebuild flow from the project root:
 ./scripts/build_ffmpeg_nvenc470.sh
 ./scripts/build_obs_kepler.sh
 ```
+
+If you build through the installer wizard, it can remove cached source/build trees afterwards while keeping the final local bundle under:
+
+- `.local/ffmpeg-nvenc470`
+- `.local/obs-kepler`
 
 For the full build guide, including cache locations, clean rebuilds, and environment overrides, see:
 
