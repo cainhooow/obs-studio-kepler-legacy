@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=OBS Studio Kepler Legacy
+GenericName=Streaming/Recording Software
+Comment=Legacy OBS Studio package for NVIDIA Kepler GPUs on Arch Linux
+Exec=@EXECUTABLE@
+Icon=obs-studio-kepler-legacy
+Terminal=false
+Categories=AudioVideo;Recorder;
+StartupNotify=true
+StartupWMClass=obs
+Keywords=OBS;Streaming;Recording;NVENC;Kepler;Legacy;

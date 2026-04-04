@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_PATH="${BASH_SOURCE[0]}"
+while [[ -L "$SCRIPT_PATH" ]]; do
+  SCRIPT_DIR="$(cd -P -- "$(dirname -- "$SCRIPT_PATH")" && pwd)"
+  SCRIPT_PATH="$(readlink "$SCRIPT_PATH")"
+  [[ "$SCRIPT_PATH" != /* ]] && SCRIPT_PATH="$SCRIPT_DIR/$SCRIPT_PATH"
+done
+SCRIPT_DIR="$(cd -P -- "$(dirname -- "$SCRIPT_PATH")" && pwd)"
+ROOT_DIR="$(cd -- "$SCRIPT_DIR/.." && pwd)"
+APP_ID="obs-studio-kepler-legacy"
+OBS_PREFIX="$ROOT_DIR/.local/obs-kepler"
+FFMPEG_PREFIX="$ROOT_DIR/.local/ffmpeg-nvenc470"
+
+if [[ ! -x "$OBS_PREFIX/bin/obs" ]]; then
+  echo "OBS binary not found at: $OBS_PREFIX/bin/obs" >&2
+  echo "Rebuild it with: $ROOT_DIR/scripts/build_obs_kepler.sh" >&2
+  exit 1
+fi
+
+CONFIG_BASE="${OBS_STUDIO_KEPLER_LEGACY_CONFIG_BASE:-$HOME/.config/$APP_ID}"
+CACHE_BASE="${OBS_STUDIO_KEPLER_LEGACY_CACHE_BASE:-$HOME/.cache/$APP_ID}"
+STATE_BASE="${OBS_STUDIO_KEPLER_LEGACY_STATE_BASE:-$HOME/.local/state/$APP_ID}"
+
+mkdir -p "$CONFIG_BASE" "$CACHE_BASE" "$STATE_BASE"
+
+# OBS stores most user-facing state under XDG config paths on Linux, so using
+# app-specific bases lets the legacy build coexist with a normal OBS install.
+export XDG_CONFIG_HOME="$CONFIG_BASE"
+export XDG_CACHE_HOME="$CACHE_BASE"
+export XDG_STATE_HOME="$STATE_BASE"
+export LD_LIBRARY_PATH="$OBS_PREFIX/lib:$FFMPEG_PREFIX/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+
+exec "$OBS_PREFIX/bin/obs" "$@"

@@ -1,0 +1,165 @@
+# Installation Guide
+
+This document explains the three supported ways to use this project:
+
+- run it directly from the extracted project folder
+- install it for the current user
+- install it system-wide
+
+The primary installer entrypoint is:
+
+```bash
+./install.sh --user
+```
+
+or:
+
+```bash
+sudo ./install.sh --system
+```
+
+## 1. Run Directly From the Project Folder
+
+This is the safest way to test the bundle before installing anything.
+
+From the project root:
+
+```bash
+./bin/obs-studio-kepler-legacy
+./bin/ffmpeg-kepler-legacy -hide_banner -encoders | rg nvenc
+```
+
+This mode:
+
+- does not overwrite your system OBS package
+- keeps legacy OBS configuration separate from normal OBS
+- is ideal for first-run testing
+
+## 2. Install for the Current User
+
+This installs the project under your home directory and does not require root.
+
+From the project root:
+
+```bash
+./install.sh --user
+```
+
+Default user install locations:
+
+- runtime bundle: `~/.local/opt/obs-studio-kepler-legacy`
+- launchers: `~/.local/bin/obs-studio-kepler-legacy` and `~/.local/bin/ffmpeg-kepler-legacy`
+- desktop entry: `~/.local/share/applications/obs-studio-kepler-legacy.desktop`
+
+After installation, launch it with:
+
+```bash
+obs-studio-kepler-legacy
+```
+
+If `~/.local/bin` is not on your `PATH`, either:
+
+- launch it with the full path, or
+- add `~/.local/bin` to your shell profile
+
+## 3. Install System-Wide
+
+This installs the bundle under `/opt` and creates launchers under `/usr/local/bin`.
+
+From the project root:
+
+```bash
+sudo ./install.sh --system
+```
+
+Default system install locations:
+
+- runtime bundle: `/opt/obs-studio-kepler-legacy`
+- launchers: `/usr/local/bin/obs-studio-kepler-legacy` and `/usr/local/bin/ffmpeg-kepler-legacy`
+- desktop entry: `/usr/local/share/applications/obs-studio-kepler-legacy.desktop`
+
+## 4. Separate Configuration
+
+This project intentionally keeps its OBS configuration separate from a normal OBS install.
+
+By default, legacy OBS stores configuration here:
+
+```text
+~/.config/obs-studio-kepler-legacy/obs-studio
+```
+
+This makes it possible to keep:
+
+- the current Arch OBS package
+- a separate Kepler-compatible OBS build
+
+on the same machine without sharing scene collections and profiles by default.
+
+## 5. Environment Overrides
+
+If you want to move the legacy config directories somewhere else, you can override them:
+
+```bash
+OBS_STUDIO_KEPLER_LEGACY_CONFIG_BASE=/some/path/config \
+OBS_STUDIO_KEPLER_LEGACY_CACHE_BASE=/some/path/cache \
+OBS_STUDIO_KEPLER_LEGACY_STATE_BASE=/some/path/state \
+./bin/obs-studio-kepler-legacy
+```
+
+## 6. Validate the Bundle
+
+To run a quick validation:
+
+```bash
+./scripts/validate_runtime.sh
+```
+
+This checks:
+
+- OBS launcher startup
+- FFmpeg launcher startup
+- NVIDIA driver visibility
+- a real `h264_nvenc` encode test
+
+## 7. Build or Rebuild From Source
+
+Yes: the provided build scripts already download the upstream sources automatically.
+
+They populate a local source cache under:
+
+- `.cache/kepler-build/ffmpeg`
+- `.cache/kepler-build/obs`
+
+Typical rebuild flow from the project root:
+
+```bash
+./scripts/build_ffmpeg_nvenc470.sh
+./scripts/build_obs_kepler.sh
+```
+
+For the full build guide, including cache locations, clean rebuilds, and environment overrides, see:
+
+- [`BUILDING.md`](./BUILDING.md)
+
+## 8. Uninstall
+
+### User Install
+
+```bash
+./uninstall.sh --user
+```
+
+### System Install
+
+```bash
+sudo ./uninstall.sh --system
+```
+
+If you also want to remove the separate runtime state, delete:
+
+```bash
+rm -rf \
+  ~/.config/obs-studio-kepler-legacy \
+  ~/.cache/obs-studio-kepler-legacy \
+  ~/.local/state/obs-studio-kepler-legacy
+```

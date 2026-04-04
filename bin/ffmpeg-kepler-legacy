@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_PATH="${BASH_SOURCE[0]}"
+while [[ -L "$SCRIPT_PATH" ]]; do
+  SCRIPT_DIR="$(cd -P -- "$(dirname -- "$SCRIPT_PATH")" && pwd)"
+  SCRIPT_PATH="$(readlink "$SCRIPT_PATH")"
+  [[ "$SCRIPT_PATH" != /* ]] && SCRIPT_PATH="$SCRIPT_DIR/$SCRIPT_PATH"
+done
+SCRIPT_DIR="$(cd -P -- "$(dirname -- "$SCRIPT_PATH")" && pwd)"
+ROOT_DIR="$(cd -- "$SCRIPT_DIR/.." && pwd)"
+FFMPEG_PREFIX="$ROOT_DIR/.local/ffmpeg-nvenc470"
+
+if [[ ! -x "$FFMPEG_PREFIX/bin/ffmpeg" ]]; then
+  echo "FFmpeg binary not found at: $FFMPEG_PREFIX/bin/ffmpeg" >&2
+  echo "Rebuild it with: $ROOT_DIR/scripts/build_ffmpeg_nvenc470.sh" >&2
+  exit 1
+fi
+
+export LD_LIBRARY_PATH="$FFMPEG_PREFIX/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+exec "$FFMPEG_PREFIX/bin/ffmpeg" "$@"
