@@ -1,0 +1,28 @@
+# Build caches and local runtime bundles
+.cache/
+.local/
+
+# Release artifacts
+dist/
+release/
+packages/
+pkg/
+*.pkg.tar.zst
+*.tar
+*.tar.gz
+*.tar.xz
+*.zip
+*.sha256
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
+tmp/
+
+# User/editor noise
+.DS_Store
+Thumbs.db
+*~
+*.swp
+*.swo
