@@ -1,0 +1,31 @@
+diff --git a/plugins/linux-v4l2/v4l2-output.c b/plugins/linux-v4l2/v4l2-output.c
+--- a/plugins/linux-v4l2/v4l2-output.c
++++ b/plugins/linux-v4l2/v4l2-output.c
+@@ -27,7 +27,10 @@
+ static void virtualcam_destroy(void *data)
+ {
+ 	struct virtualcam_data *vcam = (struct virtualcam_data *)data;
+-	close(vcam->device);
++
++	if (vcam->device >= 0)
++		close(vcam->device);
++
+ 	bfree(data);
+ }
+ 
+@@ -107,6 +110,7 @@
+ 	struct virtualcam_data *vcam =
+ 		(struct virtualcam_data *)bzalloc(sizeof(*vcam));
+ 	vcam->output = output;
++	vcam->device = -1;
+ 
+ 	UNUSED_PARAMETER(settings);
+ 	return vcam;
+@@ -233,6 +237,7 @@
+ 
+ fail_close_device:
+ 	close(vcam->device);
++	vcam->device = -1;
+ 	return false;
+ }
+ 

@@ -1,0 +1,32 @@
+diff --git a/libobs/util/pipe-posix.c b/libobs/util/pipe-posix.c
+--- a/libobs/util/pipe-posix.c
++++ b/libobs/util/pipe-posix.c
+@@ -78,20 +78,24 @@
+ 			posix_spawn_file_actions_adddup2(
+ 				&file_actions, mainfds[1], STDOUT_FILENO);
+ 			posix_spawn_file_actions_addclose(&file_actions,
+-							  mainfds[0]);
++							  mainfds[1]);
+ 		}
+ 	} else {
++		posix_spawn_file_actions_addclose(&file_actions, mainfds[1]);
+ 		if (mainfds[0] != STDIN_FILENO) {
+ 			posix_spawn_file_actions_adddup2(
+ 				&file_actions, mainfds[0], STDIN_FILENO);
+ 			posix_spawn_file_actions_addclose(&file_actions,
+-							  mainfds[1]);
++							  mainfds[0]);
+ 		}
+ 	}
+ 
+ 	posix_spawn_file_actions_addclose(&file_actions, errfds[0]);
+-	posix_spawn_file_actions_adddup2(&file_actions, errfds[1],
+-					 STDERR_FILENO);
++	if (errfds[1] != STDERR_FILENO) {
++		posix_spawn_file_actions_adddup2(&file_actions, errfds[1],
++						 STDERR_FILENO);
++		posix_spawn_file_actions_addclose(&file_actions, errfds[1]);
++	}
+ 
+ 	int pid;
+ 	int ret = posix_spawn(&pid, bin, &file_actions, NULL,

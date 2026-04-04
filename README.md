@@ -258,6 +258,10 @@ Virtual camera guide:
 
 - [`docs/VIRTUAL_CAMERA.md`](docs/VIRTUAL_CAMERA.md)
 
+Hardening guide:
+
+- [`docs/HARDENING.md`](docs/HARDENING.md)
+
 Engineering/build note:
 
 - [`docs/obs-nvenc-kepler-arch.md`](docs/obs-nvenc-kepler-arch.md)
