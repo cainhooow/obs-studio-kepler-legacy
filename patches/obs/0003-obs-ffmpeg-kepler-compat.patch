@@ -1,0 +1,51 @@
+diff --git a/plugins/obs-ffmpeg/cmake/legacy.cmake b/plugins/obs-ffmpeg/cmake/legacy.cmake
+index 558a34df6..b59625c6c 100644
+--- a/plugins/obs-ffmpeg/cmake/legacy.cmake
++++ b/plugins/obs-ffmpeg/cmake/legacy.cmake
+@@ -109,11 +109,15 @@ if(OS_WINDOWS)
+             obs-ffmpeg.rc)
+ 
+ elseif(OS_POSIX AND NOT OS_MACOS)
+-  find_package(Libva REQUIRED)
+-  find_package(Libpci REQUIRED)
+-  find_package(Libdrm REQUIRED)
+-  target_sources(obs-ffmpeg PRIVATE obs-ffmpeg-vaapi.c vaapi-utils.c vaapi-utils.h)
+-  target_link_libraries(obs-ffmpeg PRIVATE Libva::va Libva::drm LIBPCI::LIBPCI Libdrm::Libdrm)
++  option(ENABLE_VAAPI "Enable VAAPI implementation" OFF)
++
++  if(ENABLE_VAAPI)
++    find_package(Libva REQUIRED)
++    find_package(Libpci REQUIRED)
++    find_package(Libdrm REQUIRED)
++    target_sources(obs-ffmpeg PRIVATE obs-ffmpeg-vaapi.c vaapi-utils.c vaapi-utils.h)
++    target_link_libraries(obs-ffmpeg PRIVATE Libva::va Libva::drm LIBPCI::LIBPCI Libdrm::Libdrm)
++  endif()
+ 
+   if(ENABLE_NATIVE_NVENC)
+     find_package(FFnvcodec 12.0.0.0...<12.2.0.0 REQUIRED)
+diff --git a/plugins/obs-ffmpeg/obs-ffmpeg.c b/plugins/obs-ffmpeg/obs-ffmpeg.c
+index c20281f63..52618ac77 100644
+--- a/plugins/obs-ffmpeg/obs-ffmpeg.c
++++ b/plugins/obs-ffmpeg/obs-ffmpeg.c
+@@ -15,7 +15,7 @@
+ #define OBS_NVENC_AVAILABLE
+ #endif
+ 
+-#if !defined(_WIN32) && !defined(__APPLE__)
++#if 0 /* VAAPI disabled for the Kepler-focused Arch build */
+ #include "vaapi-utils.h"
+ 
+ #define LIBAVUTIL_VAAPI_AVAILABLE
+@@ -261,11 +261,7 @@ static bool nvenc_supported(bool *out_h264, bool *out_hevc, bool *out_av1)
+ 	profile_start(nvenc_check_name);
+ 
+ 	const bool h264 = nvenc_codec_exists("h264_nvenc", "nvenc_h264");
+-#ifdef ENABLE_HEVC
+-	const bool hevc = nvenc_codec_exists("hevc_nvenc", "nvenc_hevc");
+-#else
+-	const bool hevc = false;
+-#endif
++	const bool hevc = false; /* HEVC disabled for the Kepler-focused Arch build */
+ 
+ 	bool av1 = false;
+ 

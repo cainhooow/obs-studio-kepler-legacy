@@ -2,6 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT_DIR/scripts/libpatches.sh"
 WORK_DIR="${WORK_DIR:-$ROOT_DIR/.cache/kepler-build/obs}"
 PREFIX="${PREFIX:-$ROOT_DIR/.local/obs-kepler}"
 OBS_TAG="${OBS_TAG:-30.2.3}"
@@ -56,30 +57,7 @@ MBEDTLS_SRC="$SRC_DIR/mbedtls"
 echo "==> Preparing OBS $OBS_TAG"
 clone_or_update "https://github.com/obsproject/obs-studio.git" "$OBS_SRC" "$OBS_TAG"
 git -C "$OBS_SRC" submodule update --init --depth 1 plugins/obs-browser plugins/obs-websocket
-if ! rg -q "find_package\\(Qt6GuiPrivate CONFIG REQUIRED\\)" "$OBS_SRC/UI/cmake/legacy.cmake"; then
-  perl -0pi -e 's/find_package\(FFmpeg REQUIRED COMPONENTS avcodec avutil avformat\)/find_package(FFmpeg REQUIRED COMPONENTS avcodec avutil avformat)\nfind_package(Qt6GuiPrivate CONFIG REQUIRED)/' "$OBS_SRC/UI/cmake/legacy.cmake"
-fi
-if ! rg -q 'option\\(ENABLE_VAAPI "Enable VAAPI implementation" OFF\\)' "$OBS_SRC/plugins/obs-ffmpeg/cmake/legacy.cmake"; then
-  perl -0pi -e 's/elseif\(OS_POSIX AND NOT OS_MACOS\)\n  find_package\(Libva REQUIRED\)\n  find_package\(Libpci REQUIRED\)\n  find_package\(Libdrm REQUIRED\)\n  target_sources\(obs-ffmpeg PRIVATE obs-ffmpeg-vaapi\.c vaapi-utils\.c vaapi-utils\.h\)\n  target_link_libraries\(obs-ffmpeg PRIVATE Libva::va Libva::drm LIBPCI::LIBPCI Libdrm::Libdrm\)\n\n  if\(ENABLE_NATIVE_NVENC\)/elseif(OS_POSIX AND NOT OS_MACOS)\n  option(ENABLE_VAAPI \"Enable VAAPI implementation\" OFF)\n\n  if(ENABLE_VAAPI)\n    find_package(Libva REQUIRED)\n    find_package(Libpci REQUIRED)\n    find_package(Libdrm REQUIRED)\n    target_sources(obs-ffmpeg PRIVATE obs-ffmpeg-vaapi.c vaapi-utils.c vaapi-utils.h)\n    target_link_libraries(obs-ffmpeg PRIVATE Libva::va Libva::drm LIBPCI::LIBPCI Libdrm::Libdrm)\n  endif()\n\n  if(ENABLE_NATIVE_NVENC)/' "$OBS_SRC/plugins/obs-ffmpeg/cmake/legacy.cmake"
-fi
-if ! rg -q 'VAAPI disabled for the Kepler-focused Arch build' "$OBS_SRC/plugins/obs-ffmpeg/obs-ffmpeg.c"; then
-  perl -0pi -e 's/#if !defined\(_WIN32\) && !defined\(__APPLE__\)\n#include "vaapi-utils\.h"\n\n#define LIBAVUTIL_VAAPI_AVAILABLE\n#endif/#if 0 \/\* VAAPI disabled for the Kepler-focused Arch build \*\/\n#include "vaapi-utils.h"\n\n#define LIBAVUTIL_VAAPI_AVAILABLE\n#endif/' "$OBS_SRC/plugins/obs-ffmpeg/obs-ffmpeg.c"
-fi
-if ! rg -q 'HEVC disabled for the Kepler-focused Arch build' "$OBS_SRC/plugins/obs-ffmpeg/obs-ffmpeg.c"; then
-  perl -0pi -e 's/#ifdef ENABLE_HEVC\n\tconst bool hevc = nvenc_codec_exists\("hevc_nvenc", "nvenc_hevc"\);\n#else\n\tconst bool hevc = false;\n#endif/const bool hevc = false; \/\* HEVC disabled for the Kepler-focused Arch build \*\//' "$OBS_SRC/plugins/obs-ffmpeg/obs-ffmpeg.c"
-fi
-if ! rg -q '#include <cstdint>' "$OBS_SRC/deps/json11/json11.cpp"; then
-  perl -0pi -e 's/#include <cmath>\n/#include <cmath>\n#include <cstdint>\n/' "$OBS_SRC/deps/json11/json11.cpp"
-fi
-if ! rg -q 'use_caps_workaround' "$OBS_SRC/plugins/linux-v4l2/v4l2-output.c"; then
-  perl -0pi -e 's/struct virtualcam_data \{\n\tobs_output_t \*output;\n\tint device;\n\tuint32_t frame_size;\n\};/struct virtualcam_data {\n\tobs_output_t *output;\n\tint device;\n\tuint32_t frame_size;\n\tbool use_caps_workaround;\n};/' "$OBS_SRC/plugins/linux-v4l2/v4l2-output.c"
-  perl -0pi -e 's/static bool try_connect/BOOL_PLACEHOLDER/s' "$OBS_SRC/plugins/linux-v4l2/v4l2-output.c"
-  perl -0pi -e 's/BOOL_PLACEHOLDER/bool try_reset_output_caps(const char *device)\n{\n\tstruct v4l2_capability capability;\n\tstruct v4l2_format format;\n\tint fd;\n\n\tblog(LOG_INFO, "Attempting to reset output capability of '\\''%s'\\''", device);\n\n\tfd = open(device, O_RDWR);\n\tif (fd < 0)\n\t\treturn false;\n\n\tformat.type = V4L2_BUF_TYPE_VIDEO_OUTPUT;\n\tif (ioctl(fd, VIDIOC_G_FMT, &format) < 0)\n\t\tgoto fail_close_reset_caps_fd;\n\n\tif (ioctl(fd, VIDIOC_S_FMT, &format) < 0)\n\t\tgoto fail_close_reset_caps_fd;\n\n\tif (ioctl(fd, VIDIOC_STREAMON, &format.type) < 0)\n\t\tgoto fail_close_reset_caps_fd;\n\n\tif (ioctl(fd, VIDIOC_STREAMOFF, &format.type) < 0)\n\t\tgoto fail_close_reset_caps_fd;\n\n\tclose(fd);\n\n\tfd = open(device, O_RDWR);\n\tif (fd < 0)\n\t\treturn false;\n\n\tif (ioctl(fd, VIDIOC_QUERYCAP, &capability) < 0)\n\t\tgoto fail_close_reset_caps_fd;\n\n\tclose(fd);\n\treturn (capability.device_caps & V4L2_CAP_VIDEO_OUTPUT) != 0;\n\nfail_close_reset_caps_fd:\n\tclose(fd);\n\treturn false;\n}\n\nstatic bool try_connect/s' "$OBS_SRC/plugins/linux-v4l2/v4l2-output.c"
-  perl -0pi -e 's/static bool try_connect\(void \*data, const char \*device\)\n\{\n\tstruct virtualcam_data \*vcam = \(struct virtualcam_data \*\)data;\n\tstruct v4l2_format format;\n\tstruct v4l2_capability capability;\n/static bool try_connect(void *data, const char *device)\n{\n\tstatic bool use_caps_workaround = false;\n\tstruct virtualcam_data *vcam = (struct virtualcam_data *)data;\n\tstruct v4l2_capability capability;\n\tstruct v4l2_format format;\n/' "$OBS_SRC/plugins/linux-v4l2/v4l2-output.c"
-  perl -0pi -e 's/if \(ioctl\(vcam->device, VIDIOC_QUERYCAP, &capability\) < 0\)\n\t\tgoto fail_close_device;\n\n\tformat.type = V4L2_BUF_TYPE_VIDEO_OUTPUT;/if (ioctl(vcam->device, VIDIOC_QUERYCAP, &capability) < 0)\n\t\tgoto fail_close_device;\n\n\tif (!use_caps_workaround &&\n\t    !(capability.device_caps & V4L2_CAP_VIDEO_OUTPUT)) {\n\t\tif (!try_reset_output_caps(device))\n\t\t\tgoto fail_close_device;\n\n\t\tuse_caps_workaround = true;\n\t}\n\tvcam->use_caps_workaround = use_caps_workaround;\n\n\tformat.type = V4L2_BUF_TYPE_VIDEO_OUTPUT;/' "$OBS_SRC/plugins/linux-v4l2/v4l2-output.c"
-  perl -0pi -e 's/if \(ioctl\(vcam->device, VIDIOC_STREAMON, &parm\) < 0\) \{/if (vcam->use_caps_workaround &&\n\t    ioctl(vcam->device, VIDIOC_STREAMON, &format.type) < 0) {/' "$OBS_SRC/plugins/linux-v4l2/v4l2-output.c"
-  perl -0pi -e 's/struct v4l2_streamparm parm = \{0\};\n\tparm.type = V4L2_BUF_TYPE_VIDEO_OUTPUT;\n\n\tif \(ioctl\(vcam->device, VIDIOC_STREAMOFF, &parm\) < 0\) \{/uint32_t buf_type = V4L2_BUF_TYPE_VIDEO_OUTPUT;\n\n\tif (vcam->use_caps_workaround &&\n\t    ioctl(vcam->device, VIDIOC_STREAMOFF, &buf_type) < 0) {/' "$OBS_SRC/plugins/linux-v4l2/v4l2-output.c"
-fi
+apply_patch_series "$OBS_SRC" "$ROOT_DIR/patches/obs" "OBS"
 
 echo "==> Preparing nv-codec-headers $NV_CODEC_TAG"
 clone_or_update "https://github.com/FFmpeg/nv-codec-headers.git" "$NV_CODEC_SRC" "$NV_CODEC_TAG"

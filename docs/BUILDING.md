@@ -31,6 +31,24 @@ They do not expect you to manually clone `obs-studio`, `FFmpeg`, `nv-codec-heade
 
 The OBS script also applies a few compatibility patches automatically during the build flow so this older OBS line can still build cleanly on the validated Arch environment.
 
+Those patches are stored as versioned patch files under:
+
+- `patches/obs`
+- `patches/ffmpeg`
+
+The build scripts validate and apply those patch series automatically instead of embedding large inline source rewrites inside the build logic.
+
+Patch files should be named with an ordered prefix such as:
+
+- `0001-description.patch`
+- `0002-description.patch`
+
+That keeps the series readable and gives the build scripts a stable application order.
+
+The patch layout and naming rules are documented in:
+
+- [`../patches/README.md`](../patches/README.md)
+
 ## Default Build Layout
 
 By default, sources, temporary build trees, and installed outputs are separated:

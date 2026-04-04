@@ -1,0 +1,12 @@
+diff --git a/UI/cmake/legacy.cmake b/UI/cmake/legacy.cmake
+index 487c2a5c0..f2d97b24f 100644
+--- a/UI/cmake/legacy.cmake
++++ b/UI/cmake/legacy.cmake
+@@ -66,6 +66,7 @@ endif()
+ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/ui-config.h.in ${CMAKE_CURRENT_BINARY_DIR}/ui-config.h)
+ 
+ find_package(FFmpeg REQUIRED COMPONENTS avcodec avutil avformat)
++find_package(Qt6GuiPrivate CONFIG REQUIRED)
+ find_package(CURL REQUIRED)
+ 
+ add_subdirectory(frontend-plugins)

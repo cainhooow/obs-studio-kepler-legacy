@@ -159,6 +159,7 @@ obs-studio-legacy/
 ├── bin/                       # End-user launchers
 ├── docs/                      # Installation, troubleshooting, notes
 ├── install/                   # Shared installer helper files
+├── patches/                   # Source patch series for OBS/FFmpeg
 ├── scripts/                   # Build and validation scripts
 ├── share/                     # Desktop integration templates
 ├── .gitignore
@@ -227,6 +228,17 @@ The default install destinations for the built bundle are:
 
 - `.local/ffmpeg-nvenc470`
 - `.local/obs-kepler`
+
+The source compatibility fixes are stored as patch files under:
+
+- `patches/obs`
+- `patches/ffmpeg`
+
+The build scripts validate and apply those patch series automatically.
+
+Patch order is controlled by the filename prefix, so new patches should follow the `0001-description.patch` naming scheme documented in:
+
+- [`patches/README.md`](patches/README.md)
 
 ## Extra Documentation
 

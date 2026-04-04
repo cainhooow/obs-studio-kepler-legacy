@@ -24,12 +24,20 @@ Included build scripts:
 - `scripts/build_ffmpeg_nvenc470.sh`
 - `scripts/build_obs_kepler.sh`
 
+Local patch series:
+
+- `patches/obs`
+- `patches/ffmpeg`
+
 What the OBS build script patches:
 
 - downloads `nlohmann/json v3.11.3` locally because the current Arch build environment does not provide it automatically for this older OBS line
 - adds `#include <cstdint>` to `json11.cpp` so it builds cleanly with the current toolchain
 - disables the VAAPI code path in `obs-ffmpeg`, because `OBS 30.2.3` does not build cleanly against `ffmpeg 8.1` there and VAAPI is not needed for this GTX 660 NVENC target
 - disables `HEVC NVENC` exposure in OBS, because the `GTX 660` does not support that codec in hardware even if FFmpeg exposes the encoder symbol
+- backports the `linux-v4l2` virtual camera start fix needed for current `v4l2loopback`
+
+The build scripts load those patches from disk and validate them with `git apply --check` before applying them.
 
 Usage:
 

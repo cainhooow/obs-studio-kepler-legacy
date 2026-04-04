@@ -2,6 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT_DIR/scripts/libpatches.sh"
 WORK_DIR="${WORK_DIR:-$ROOT_DIR/.cache/kepler-build/ffmpeg}"
 PREFIX="${PREFIX:-$ROOT_DIR/.local/ffmpeg-nvenc470}"
 NV_CODEC_TAG="${NV_CODEC_TAG:-n11.1.5.3}"
@@ -59,6 +60,7 @@ export PKG_CONFIG_PATH="$FFNV_PREFIX/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFI
 
 echo "==> Preparing FFmpeg $FFMPEG_TAG"
 clone_or_update "https://github.com/FFmpeg/FFmpeg.git" "$FFMPEG_SRC" "$FFMPEG_TAG"
+apply_patch_series "$FFMPEG_SRC" "$ROOT_DIR/patches/ffmpeg" "FFmpeg"
 
 rm -rf "$BUILD_DIR"
 mkdir -p "$BUILD_DIR"
