@@ -47,12 +47,6 @@ If you want a versioned release archive first, create one with:
 ./release.sh
 ```
 
-Important:
-
-- the generated `.tar.gz` file is a generic release bundle
-- it is not directly installable with `pacman -U`
-- for `pacman -U`, use the generated `.pkg.tar.zst` package instead
-
 ## 1. Run Directly From the Project Folder
 
 This is the safest way to test the bundle before installing anything.
@@ -117,14 +111,14 @@ Default system install locations:
 
 If you prefer an Arch package workflow, use the optional local `PKGBUILD`.
 
-From the project root:
+Recommended Arch Linux install:
 
 ```bash
 ./release.sh --arch-package --test-artifacts
 sudo pacman -U dist/obs-studio-kepler-legacy-bin-*.pkg.tar.zst
 ```
 
-Or, if you want to build the package manually:
+Manual package build from the project root:
 
 ```bash
 ./release.sh

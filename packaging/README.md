@@ -2,10 +2,14 @@
 
 This directory contains an optional `PKGBUILD` for users who prefer to install the release bundle with `makepkg`.
 
-Important:
+## Recommended Arch Install
 
-- `obs-studio-kepler-legacy-<version>.tar.gz` is a generic release bundle, not a pacman package
-- `pacman -U` expects a real package file such as `*.pkg.tar.zst`
+From the project root:
+
+```bash
+./release.sh --arch-package --test-artifacts
+sudo pacman -U dist/obs-studio-kepler-legacy-bin-*.pkg.tar.zst
+```
 
 ## Supported Flow
 

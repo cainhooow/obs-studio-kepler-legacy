@@ -120,10 +120,8 @@ sudo ./install.sh --system
 ### Local Arch Package Install
 
 ```bash
-./release.sh
-cp dist/obs-studio-kepler-legacy-*.tar.gz packaging/
-cd packaging
-makepkg -si
+./release.sh --arch-package --test-artifacts
+sudo pacman -U dist/obs-studio-kepler-legacy-bin-*.pkg.tar.zst
 ```
 
 ## Coexistence With Normal OBS
@@ -175,8 +173,6 @@ That produces:
 - `dist/obs-studio-kepler-legacy-<version>.tar.gz`
 - `dist/obs-studio-kepler-legacy-<version>.tar.gz.sha256`
 
-The `.tar.gz` file is an extractable release bundle, not a pacman package.
-
 If you also want an installable Arch package and a quick artifact test pass, use:
 
 ```bash
@@ -188,7 +184,7 @@ That additionally produces:
 - `dist/obs-studio-kepler-legacy-bin-<version>-1-x86_64.pkg.tar.zst`
 - `dist/obs-studio-kepler-legacy-bin-<version>-1-x86_64.pkg.tar.zst.sha256`
 
-And you can install that package with:
+For Arch Linux installation, use:
 
 ```bash
 sudo pacman -U dist/obs-studio-kepler-legacy-bin-*.pkg.tar.zst
