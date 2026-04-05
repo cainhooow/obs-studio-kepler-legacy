@@ -190,6 +190,8 @@ For Arch Linux installation, use:
 sudo pacman -U dist/obs-studio-kepler-legacy-bin-*.pkg.tar.zst
 ```
 
+The Arch package works with either `pipewire-jack` or `jack2`.
+
 The optional Arch packaging recipe lives in:
 
 - [`packaging/PKGBUILD`](packaging/PKGBUILD)

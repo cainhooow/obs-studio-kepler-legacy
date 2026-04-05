@@ -138,7 +138,9 @@ if [[ -f "$package_path" ]]; then
   fi
 
   echo "==> Inspecting Arch package metadata"
-  pacman -Qip "$package_path" >/dev/null
+  package_info="$(pacman -Qip "$package_path")"
+  grep -Eq 'Depends On.*libjack\.so=0-64' <<<"$package_info"
+  ! grep -Eq 'Depends On.*jack2' <<<"$package_info"
   package_listing="$(pacman -Qlp "$package_path")"
   grep -Eq '/usr/bin/obs-studio-kepler-legacy$' <<<"$package_listing"
   grep -Eq '/opt/obs-studio-kepler-legacy/.local/obs-kepler/bin/obs$' <<<"$package_listing"

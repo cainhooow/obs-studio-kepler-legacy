@@ -11,6 +11,11 @@ From the project root:
 sudo pacman -U dist/obs-studio-kepler-legacy-bin-*.pkg.tar.zst
 ```
 
+The package accepts either of these JACK providers on Arch Linux:
+
+- `pipewire-jack`
+- `jack2`
+
 ## Supported Flow
 
 1. Create a release archive from the project root:
@@ -55,4 +60,5 @@ sudo pacman -U dist/obs-studio-kepler-legacy-bin-*.pkg.tar.zst
 
 - this is a local packaging recipe, not an official upstream Arch package
 - the package is intentionally named `obs-studio-kepler-legacy-bin` so it can coexist with the normal `obs-studio` package
+- the package depends on the JACK ABI, so `pipewire-jack` and `jack2` both satisfy it
 - Linux virtual camera support still depends on the host `v4l2loopback` module

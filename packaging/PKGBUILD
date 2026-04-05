@@ -13,7 +13,7 @@ depends=(
   'curl'
   'gcc-libs'
   'glibc'
-  'jack2'
+  'libjack.so=0-64'
   'libdrm'
   'libx11'
   'libxcomposite'
@@ -29,6 +29,8 @@ depends=(
   'wayland'
 )
 optdepends=(
+  'jack2: native JACK server implementation'
+  'pipewire-jack: PipeWire JACK replacement'
   'v4l2loopback-dkms: Linux virtual camera kernel module'
   'v4l2loopback-utils: virtual camera control utilities'
 )

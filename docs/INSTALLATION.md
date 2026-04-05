@@ -118,6 +118,11 @@ Recommended Arch Linux install:
 sudo pacman -U dist/obs-studio-kepler-legacy-bin-*.pkg.tar.zst
 ```
 
+For the JACK dependency on Arch Linux, either of these is valid:
+
+- `pipewire-jack`
+- `jack2`
+
 Manual package build from the project root:
 
 ```bash
