@@ -6,3 +6,5 @@ If a future compatibility change is needed, add it here using the standard patch
 
 - `0001-description.patch`
 - `0002-description.patch`
+
+The patch metadata header documented in [`../README.md`](../README.md) is required here as well.

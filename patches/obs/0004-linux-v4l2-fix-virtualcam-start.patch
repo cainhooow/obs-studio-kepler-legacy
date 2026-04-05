@@ -1,3 +1,8 @@
+# Patch-Name: 0004-linux-v4l2-fix-virtualcam-start.patch
+# Patch-Origin: Local backport for current Arch Linux v4l2loopback behavior on OBS 30.2.3.
+# Patch-Reason: Fix virtual camera startup failures seen with modern v4l2loopback versions.
+# Patch-Risk: Medium. Touches only the Linux virtual camera output path.
+
 diff --git a/plugins/linux-v4l2/v4l2-output.c b/plugins/linux-v4l2/v4l2-output.c
 index 0d07d0d8a..39b7f7566 100644
 --- a/plugins/linux-v4l2/v4l2-output.c

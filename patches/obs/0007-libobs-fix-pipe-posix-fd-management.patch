@@ -1,3 +1,8 @@
+# Patch-Name: 0007-libobs-fix-pipe-posix-fd-management.patch
+# Patch-Origin: Upstream OBS Studio backport from commit 49708181b5ef9eeb393b9710d9e50ad7093ad57b.
+# Patch-Reason: Fix incorrect file descriptor duplication and close handling in POSIX child-process setup.
+# Patch-Risk: Low. Limited to POSIX subprocess pipe wiring.
+
 diff --git a/libobs/util/pipe-posix.c b/libobs/util/pipe-posix.c
 --- a/libobs/util/pipe-posix.c
 +++ b/libobs/util/pipe-posix.c

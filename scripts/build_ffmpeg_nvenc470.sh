@@ -2,11 +2,13 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck source=scripts/libpatches.sh
 source "$ROOT_DIR/scripts/libpatches.sh"
+# shellcheck source=scripts/project-versions.sh
+source "$ROOT_DIR/scripts/project-versions.sh"
 WORK_DIR="${WORK_DIR:-$ROOT_DIR/.cache/kepler-build/ffmpeg}"
 PREFIX="${PREFIX:-$ROOT_DIR/.local/ffmpeg-nvenc470}"
-NV_CODEC_TAG="${NV_CODEC_TAG:-n11.1.5.3}"
-FFMPEG_TAG="${FFMPEG_TAG:-n8.1}"
+NV_CODEC_TAG="${NV_CODEC_TAG:-$FFMPEG_NV_CODEC_TAG_DEFAULT}"
 JOBS="${JOBS:-$(nproc)}"
 
 SRC_DIR="$WORK_DIR/src"
@@ -52,14 +54,14 @@ NV_CODEC_SRC="$SRC_DIR/nv-codec-headers"
 FFMPEG_SRC="$SRC_DIR/FFmpeg"
 
 echo "==> Preparing nv-codec-headers $NV_CODEC_TAG"
-clone_or_update "https://github.com/FFmpeg/nv-codec-headers.git" "$NV_CODEC_SRC" "$NV_CODEC_TAG"
+clone_or_update "$NV_CODEC_UPSTREAM_URL" "$NV_CODEC_SRC" "$NV_CODEC_TAG"
 rm -rf "$FFNV_PREFIX"
 make -C "$NV_CODEC_SRC" PREFIX="$FFNV_PREFIX" install
 
 export PKG_CONFIG_PATH="$FFNV_PREFIX/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
 
 echo "==> Preparing FFmpeg $FFMPEG_TAG"
-clone_or_update "https://github.com/FFmpeg/FFmpeg.git" "$FFMPEG_SRC" "$FFMPEG_TAG"
+clone_or_update "$FFMPEG_UPSTREAM_URL" "$FFMPEG_SRC" "$FFMPEG_TAG"
 apply_patch_series "$FFMPEG_SRC" "$ROOT_DIR/patches/ffmpeg" "FFmpeg"
 
 rm -rf "$BUILD_DIR"

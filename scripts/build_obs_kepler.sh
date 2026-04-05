@@ -2,14 +2,16 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck source=scripts/libpatches.sh
 source "$ROOT_DIR/scripts/libpatches.sh"
+# shellcheck source=scripts/project-versions.sh
+source "$ROOT_DIR/scripts/project-versions.sh"
 WORK_DIR="${WORK_DIR:-$ROOT_DIR/.cache/kepler-build/obs}"
 PREFIX="${PREFIX:-$ROOT_DIR/.local/obs-kepler}"
-OBS_TAG="${OBS_TAG:-30.2.3}"
-NV_CODEC_TAG="${NV_CODEC_TAG:-n12.1.14.0}"
-MBEDTLS_TAG="${MBEDTLS_TAG:-mbedtls-3.6.6}"
-UTHASH_TAG="${UTHASH_TAG:-v2.3.0}"
-NLOHMANN_JSON_TAG="${NLOHMANN_JSON_TAG:-v3.11.3}"
+NV_CODEC_TAG="${NV_CODEC_TAG:-$OBS_NV_CODEC_TAG_DEFAULT}"
+MBEDTLS_TAG="${MBEDTLS_TAG:-$MBEDTLS_TAG_DEFAULT}"
+UTHASH_TAG="${UTHASH_TAG:-$UTHASH_TAG_DEFAULT}"
+NLOHMANN_JSON_TAG="${NLOHMANN_JSON_TAG:-$NLOHMANN_JSON_TAG_DEFAULT}"
 JOBS="${JOBS:-$(nproc)}"
 
 SRC_DIR="$WORK_DIR/src"
@@ -55,17 +57,17 @@ NV_CODEC_SRC="$SRC_DIR/nv-codec-headers"
 MBEDTLS_SRC="$SRC_DIR/mbedtls"
 
 echo "==> Preparing OBS $OBS_TAG"
-clone_or_update "https://github.com/obsproject/obs-studio.git" "$OBS_SRC" "$OBS_TAG"
+clone_or_update "$OBS_UPSTREAM_URL" "$OBS_SRC" "$OBS_TAG"
 git -C "$OBS_SRC" submodule update --init --depth 1 plugins/obs-browser plugins/obs-websocket
 apply_patch_series "$OBS_SRC" "$ROOT_DIR/patches/obs" "OBS"
 
 echo "==> Preparing nv-codec-headers $NV_CODEC_TAG"
-clone_or_update "https://github.com/FFmpeg/nv-codec-headers.git" "$NV_CODEC_SRC" "$NV_CODEC_TAG"
+clone_or_update "$NV_CODEC_UPSTREAM_URL" "$NV_CODEC_SRC" "$NV_CODEC_TAG"
 rm -rf "$FFNV_PREFIX"
 make -C "$NV_CODEC_SRC" PREFIX="$FFNV_PREFIX" install
 
 echo "==> Preparing Mbed TLS $MBEDTLS_TAG"
-clone_or_update "https://github.com/Mbed-TLS/mbedtls.git" "$MBEDTLS_SRC" "$MBEDTLS_TAG"
+clone_or_update "$MBEDTLS_UPSTREAM_URL" "$MBEDTLS_SRC" "$MBEDTLS_TAG"
 git -C "$MBEDTLS_SRC" submodule update --init --depth 1 framework
 rm -rf "$WORK_DIR/mbedtls-build" "$MBEDTLS_PREFIX"
 cmake -S "$MBEDTLS_SRC" -B "$WORK_DIR/mbedtls-build" \

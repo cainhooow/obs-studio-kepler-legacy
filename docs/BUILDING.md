@@ -49,6 +49,10 @@ The patch layout and naming rules are documented in:
 
 - [`../patches/README.md`](../patches/README.md)
 
+The project release version is recorded in:
+
+- `../VERSION`
+
 ## Default Build Layout
 
 By default, sources, temporary build trees, and installed outputs are separated:
@@ -90,6 +94,12 @@ After the build completes, test with:
 ./bin/ffmpeg-kepler-legacy -hide_banner -encoders | rg nvenc
 ./bin/obs-studio-kepler-legacy --version
 ./scripts/validate_runtime.sh
+```
+
+After changing any patch or build script, run:
+
+```bash
+./scripts/check_project.sh
 ```
 
 ## Clean Rebuild From Scratch
@@ -215,6 +225,16 @@ OBS:
 ```bash
 PREFIX="$PWD/out/obs" ./scripts/build_obs_kepler.sh
 ```
+
+## Release Packaging
+
+Once the local bundle is built and validated, create a distributable archive with:
+
+```bash
+./release.sh
+```
+
+This packages the project into `dist/` and generates a matching `sha256` checksum file.
 
 ## Example: Use a Different Work Cache
 

@@ -1,3 +1,8 @@
+# Patch-Name: 0003-obs-ffmpeg-kepler-compat.patch
+# Patch-Origin: Local Kepler compatibility patch for the OBS 30.2.3 plus FFmpeg 8.1 legacy bundle.
+# Patch-Reason: Keep native H.264 NVENC working on NVIDIA 470.xx and Kepler by disabling the conflicting VAAPI path in this focused build.
+# Patch-Risk: Medium. Deliberately narrows feature surface by disabling VAAPI in obs-ffmpeg.
+
 diff --git a/plugins/obs-ffmpeg/cmake/legacy.cmake b/plugins/obs-ffmpeg/cmake/legacy.cmake
 index 558a34df6..b59625c6c 100644
 --- a/plugins/obs-ffmpeg/cmake/legacy.cmake

@@ -1,3 +1,8 @@
+# Patch-Name: 0008-ui-clamp-cropped-preview-sizes.patch
+# Patch-Origin: Upstream OBS Studio backport for cropped preview size clamping.
+# Patch-Reason: Prevent negative preview geometry when an item is cropped more heavily than its source dimensions.
+# Patch-Risk: Low. UI-only bounds clamp.
+
 diff --git a/UI/window-basic-preview.cpp b/UI/window-basic-preview.cpp
 --- a/UI/window-basic-preview.cpp
 +++ b/UI/window-basic-preview.cpp

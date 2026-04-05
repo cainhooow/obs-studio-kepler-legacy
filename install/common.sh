@@ -86,7 +86,13 @@ copy_runtime_tree() {
   cp -a "$root/.local" "$install_root/"
   cp -a "$root/bin" "$install_root/"
   cp -a "$root/docs" "$install_root/"
+  cp -a "$root/patches" "$install_root/"
+  cp -a "$root/scripts" "$install_root/"
+  cp -a "$root/share" "$install_root/"
+  cp -a "$root/CHANGELOG.md" "$install_root/"
   cp -a "$root/README.md" "$install_root/"
+  cp -a "$root/SECURITY.md" "$install_root/"
+  cp -a "$root/VERSION" "$install_root/"
 
   if [[ -x "$root/scripts/make_bundle_relocatable.sh" ]]; then
     "$root/scripts/make_bundle_relocatable.sh" "$install_root"

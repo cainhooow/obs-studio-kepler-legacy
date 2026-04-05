@@ -1,3 +1,8 @@
+# Patch-Name: 0006-libobs-handle-json-null-data.patch
+# Patch-Origin: Upstream OBS Studio backport from commit a4f3c16065570e987125aff30102958c4284eed9.
+# Patch-Reason: Handle JSON null values safely in libobs data conversion and serialization paths.
+# Patch-Risk: Low. Adds defensive null handling.
+
 diff --git a/libobs/obs-data.c b/libobs/obs-data.c
 --- a/libobs/obs-data.c
 +++ b/libobs/obs-data.c

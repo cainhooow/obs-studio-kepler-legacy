@@ -34,10 +34,12 @@ The current patch series also adds these low-risk hardening backports:
   - clamps negative preview dimensions after extreme crop values and avoids integer underflow/overflow behavior in the editor preview
 - `0009-linux-v4l2-avoid-closing-invalid-fds.patch`
   - prevents the virtual camera plugin from closing invalid file descriptors and potentially closing the wrong fd
+- `0010-ui-reject-empty-scene-collection-names.patch`
+  - rejects malformed empty scene collection names before they can create invalid configuration state
 
 ## What Was Intentionally Not Backported
 
-Some later upstream fixes were reviewed but not added here because they do not affect the shipped feature set of this bundle:
+Some later upstream fixes were reviewed but not added here because they either do not affect the shipped feature set of this bundle or are too invasive for this legacy branch:
 
 - new native `mpegts` SRT/RIST output crash fixes
   - not relevant here because the build uses `ENABLE_NEW_MPEGTS_OUTPUT=OFF`
@@ -45,6 +47,8 @@ Some later upstream fixes were reviewed but not added here because they do not a
   - not relevant here because browser support is disabled
 - `obs-websocket` fixes
   - not relevant here because websocket support is disabled
+- the later CLI scene collection and profile initialization refactor
+  - reviewed, but not backported because the initialization flow in `30.2.x` differs enough that the change is higher-risk than the focused fixes carried here
 
 ## Maintenance Rule
 
@@ -61,3 +65,9 @@ All source backports live in:
 
 - `patches/obs`
 - `patches/ffmpeg`
+
+Each patch also carries metadata describing:
+
+- origin
+- reason for inclusion
+- expected maintenance risk

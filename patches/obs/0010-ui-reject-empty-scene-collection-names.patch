@@ -1,0 +1,19 @@
+# Patch-Name: 0010-ui-reject-empty-scene-collection-names.patch
+# Patch-Origin: Adapted from upstream OBS Studio commits e21712af3ea736dd79c7a5824e48449b38a8ba70 and 552c19cab2e1c186bf7997b08a34b1568d0b6cf6.
+# Patch-Reason: Prevent malformed empty-named scene collections when API or CLI paths bypass the normal text-input validation.
+# Patch-Risk: Low. Adds a defensive early return for an invalid empty collection name.
+
+diff --git a/UI/window-basic-main-scene-collections.cpp b/UI/window-basic-main-scene-collections.cpp
+index 0fe0867ed..d406b14ee 100644
+--- a/UI/window-basic-main-scene-collections.cpp
++++ b/UI/window-basic-main-scene-collections.cpp
+@@ -141,6 +141,9 @@ bool OBSBasic::AddSceneCollection(bool create_new, const QString &qname)
+ 			return false;
+ 	} else {
+ 		name = QT_TO_UTF8(qname);
++		if (name.empty())
++			return false;
++
+ 		if (SceneCollectionExists(name.c_str()))
+ 			return false;
+ 
