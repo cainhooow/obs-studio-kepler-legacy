@@ -5,6 +5,7 @@
 ![NVENC](https://img.shields.io/badge/NVENC-H.264-success)
 ![OBS](https://img.shields.io/badge/OBS-30.2.3-orange)
 ![FFmpeg](https://img.shields.io/badge/FFmpeg-8.1-blue)
+[![AUR package](https://img.shields.io/badge/AUR-obs--studio--kepler--legacy--bin-1793D1)](https://aur.archlinux.org/packages/obs-studio-kepler-legacy-bin)
 
 `OBS Studio Kepler Legacy` is a compatibility-focused `OBS + FFmpeg` bundle for NVIDIA Kepler GPUs on Arch Linux.
 
@@ -42,6 +43,12 @@ Run the guided setup wizard:
 
 ```bash
 ./install.sh --all
+```
+
+Install from the AUR after the package is published:
+
+```bash
+paru -S obs-studio-kepler-legacy-bin
 ```
 
 ## Quick Validation
@@ -123,6 +130,30 @@ sudo ./install.sh --system
 ./release.sh --arch-package --test-artifacts
 sudo pacman -U dist/obs-studio-kepler-legacy-bin-*.pkg.tar.zst
 ```
+
+### Install From AUR
+
+Once the AUR package is published, Arch users can install it with an AUR helper:
+
+```bash
+paru -S obs-studio-kepler-legacy-bin
+```
+
+or:
+
+```bash
+yay -S obs-studio-kepler-legacy-bin
+```
+
+If you prefer the manual AUR workflow:
+
+```bash
+git clone https://aur.archlinux.org/obs-studio-kepler-legacy-bin.git
+cd obs-studio-kepler-legacy-bin
+makepkg -si
+```
+
+That installs the package under `/opt/obs-studio-kepler-legacy` and creates launchers under `/usr/bin`.
 
 ## Coexistence With Normal OBS
 

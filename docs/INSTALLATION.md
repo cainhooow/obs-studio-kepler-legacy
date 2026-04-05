@@ -3,6 +3,7 @@
 This document explains the supported ways to use this project:
 
 - run it directly from the extracted project folder
+- install it from the AUR
 - use the interactive setup wizard
 - install it for the current user
 - install it system-wide
@@ -107,7 +108,31 @@ Default system install locations:
 - launchers: `/usr/local/bin/obs-studio-kepler-legacy` and `/usr/local/bin/ffmpeg-kepler-legacy`
 - desktop entry: `/usr/local/share/applications/obs-studio-kepler-legacy.desktop`
 
-## 4. Install With makepkg
+## 4. Install From AUR
+
+Once the package is published on the AUR, the easiest Arch Linux install path is:
+
+```bash
+paru -S obs-studio-kepler-legacy-bin
+```
+
+or:
+
+```bash
+yay -S obs-studio-kepler-legacy-bin
+```
+
+If you prefer the manual AUR workflow:
+
+```bash
+git clone https://aur.archlinux.org/obs-studio-kepler-legacy-bin.git
+cd obs-studio-kepler-legacy-bin
+makepkg -si
+```
+
+That installs the bundle under `/opt/obs-studio-kepler-legacy` and creates launchers under `/usr/bin`.
+
+## 5. Install With makepkg
 
 If you prefer an Arch package workflow, use the optional local `PKGBUILD`.
 
@@ -151,7 +176,7 @@ See:
 
 - [`VIRTUAL_CAMERA.md`](./VIRTUAL_CAMERA.md)
 
-## 5. Separate Configuration
+## 6. Separate Configuration
 
 This project intentionally keeps its OBS configuration separate from a normal OBS install.
 
@@ -168,7 +193,7 @@ This makes it possible to keep:
 
 on the same machine without sharing scene collections and profiles by default.
 
-## 6. Environment Overrides
+## 7. Environment Overrides
 
 If you want to move the legacy config directories somewhere else, you can override them:
 
@@ -179,7 +204,7 @@ OBS_STUDIO_KEPLER_LEGACY_STATE_BASE=/some/path/state \
 ./bin/obs-studio-kepler-legacy
 ```
 
-## 7. Validate the Bundle
+## 8. Validate the Bundle
 
 To run a quick validation:
 
@@ -201,7 +226,7 @@ To test the release artifacts themselves:
 ./scripts/test_release_artifacts.sh --build-package
 ```
 
-## 8. Build or Rebuild From Source
+## 9. Build or Rebuild From Source
 
 Yes: the provided build scripts already download the upstream sources automatically.
 
@@ -226,7 +251,7 @@ For the full build guide, including cache locations, clean rebuilds, and environ
 
 - [`BUILDING.md`](./BUILDING.md)
 
-## 9. Uninstall
+## 10. Uninstall
 
 ### User Install
 
