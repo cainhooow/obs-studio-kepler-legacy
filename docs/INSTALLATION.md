@@ -128,6 +128,8 @@ For the PulseAudio-compatible audio layer on Arch Linux, either of these is vali
 - `pipewire-pulse`
 - `pulseaudio`
 
+For PipeWire-based features such as Wayland screen capture integration, keep the `pipewire` package installed on the host system.
+
 Manual package build from the project root:
 
 ```bash

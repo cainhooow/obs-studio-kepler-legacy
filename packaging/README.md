@@ -21,6 +21,8 @@ For the PulseAudio-compatible audio layer on Arch Linux, either of these is vali
 - `pipewire-pulse`
 - `pulseaudio`
 
+For PipeWire-based features such as Wayland screen capture integration, keep the `pipewire` package installed on the host system.
+
 ## Supported Flow
 
 1. Create a release archive from the project root:
@@ -65,5 +67,6 @@ sudo pacman -U dist/obs-studio-kepler-legacy-bin-*.pkg.tar.zst
 
 - this is a local packaging recipe, not an official upstream Arch package
 - the package is intentionally named `obs-studio-kepler-legacy-bin` so it can coexist with the normal `obs-studio` package
-- the package depends on the JACK and PulseAudio client ABIs, so `pipewire-jack` / `jack2` and `pipewire-pulse` / `pulseaudio` can coexist with it
+- the package depends on the JACK, PipeWire, and PulseAudio client ABIs, so it does not force a specific JACK or PulseAudio server implementation
+- keep the host `pipewire` package installed if you use PipeWire-backed functionality such as Wayland screen capture
 - Linux virtual camera support still depends on the host `v4l2loopback` module

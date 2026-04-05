@@ -190,9 +190,11 @@ For Arch Linux installation, use:
 sudo pacman -U dist/obs-studio-kepler-legacy-bin-*.pkg.tar.zst
 ```
 
-The Arch package works with either `pipewire-jack` or `jack2`.
+The Arch package uses ABI-level dependencies for the audio stack, so it works with either `pipewire-jack` or `jack2`.
 
 For PulseAudio-compatible audio on Arch Linux, it also works with either `pipewire-pulse` or `pulseaudio`.
+
+If you want PipeWire-based features such as Wayland screen capture integration, keep the `pipewire` package installed on the host system.
 
 The optional Arch packaging recipe lives in:
 

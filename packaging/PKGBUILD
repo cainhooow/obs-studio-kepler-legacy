@@ -14,6 +14,7 @@ depends=(
   'gcc-libs'
   'glibc'
   'libjack.so=0-64'
+  'libpipewire-0.3.so=0-64'
   'libpulse.so=0-64'
   'libdrm'
   'libx11'
@@ -24,12 +25,12 @@ depends=(
   'libxkbcommon'
   'libxrandr'
   'libxcb'
-  'pipewire'
   'qt6-base'
   'wayland'
 )
 optdepends=(
   'jack2: native JACK server implementation'
+  'pipewire: PipeWire daemon and desktop integration for Wayland capture and related features'
   'pipewire-jack: PipeWire JACK replacement'
   'pipewire-pulse: PipeWire PulseAudio replacement'
   'pulseaudio: PulseAudio server implementation'
