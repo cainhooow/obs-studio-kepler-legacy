@@ -22,9 +22,10 @@ cleanup_build_artifacts() {
   for target in "$@"; do
     case "$target" in
       ffmpeg|obs)
-        if [[ -e "$build_root/$target" ]]; then
-          rm -rf "$build_root/$target"
-          echo "Removed build artifacts: $build_root/$target"
+        local target_path="$build_root/$target"
+        if [[ -e "$target_path" ]]; then
+          rm -rf -- "${target_path:?}"
+          echo "Removed build artifacts: $target_path"
           cleaned_any=true
         fi
         ;;
