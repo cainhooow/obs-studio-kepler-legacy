@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## 30.2.3-kepler.2 - 2026-04-05
+
+Release packaging correction.
+
+### Added
+
+- installable Arch package output in `dist/*.pkg.tar.zst`
+- release artifact validation script for tarballs, checksums, and Arch package metadata
+
+### Changed
+
+- `release.sh` can now build the Arch package and run artifact tests in one pass
+- documentation now clearly distinguishes the generic `.tar.gz` bundle from the `pacman -U` package artifact
+- Arch packaging disables split debug output for this prebuilt bundle
+
 ## 30.2.3-kepler.1 - 2026-04-05
 
 Initial public project release.

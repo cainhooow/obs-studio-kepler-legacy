@@ -12,10 +12,14 @@ usage() {
 Usage:
   ./release.sh
   ./release.sh --skip-checks
+  ./release.sh --arch-package
+  ./release.sh --test-artifacts
   ./release.sh --output-dir ./dist
 
 Options:
   --skip-checks     Skip ./scripts/check_project.sh before packaging
+  --arch-package    Build an installable Arch package (.pkg.tar.zst) after creating the tarball
+  --test-artifacts  Run release artifact tests after packaging
   --output-dir DIR  Write the release archive and checksum into DIR
   -h, --help        Show this help message
 EOF
@@ -31,11 +35,19 @@ copy_release_item() {
 
 output_dir="${OUTPUT_DIR:-$ROOT_DIR/dist}"
 skip_checks=false
+build_arch_package=false
+test_artifacts=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --skip-checks)
       skip_checks=true
+      ;;
+    --arch-package)
+      build_arch_package=true
+      ;;
+    --test-artifacts)
+      test_artifacts=true
       ;;
     --output-dir)
       shift
@@ -106,3 +118,15 @@ echo "Release archive created:"
 echo "  $archive_path"
 echo "Checksum file created:"
 echo "  $checksum_path"
+
+if [[ "$build_arch_package" == true ]]; then
+  "$ROOT_DIR/scripts/build_arch_package.sh" --archive "$archive_path" --output-dir "$output_dir"
+fi
+
+if [[ "$test_artifacts" == true ]]; then
+  test_args=(--archive "$archive_path")
+  if [[ "$build_arch_package" == true ]]; then
+    test_args+=(--package "$output_dir/obs-studio-kepler-legacy-bin-${PROJECT_VERSION//-/_}-1-x86_64.pkg.tar.zst")
+  fi
+  "$ROOT_DIR/scripts/test_release_artifacts.sh" "${test_args[@]}"
+fi

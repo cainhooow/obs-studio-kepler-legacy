@@ -4,7 +4,7 @@
 
 | Version | Supported |
 | --- | --- |
-| `30.2.3-kepler.1` | Yes |
+| `30.2.3-kepler.2` | Yes |
 
 ## Security Posture
 

@@ -14,7 +14,7 @@ It preserves a practical `H.264 NVENC` workflow for systems that still depend on
 
 | Item | Value | Status |
 | --- | --- | --- |
-| Project release | `30.2.3-kepler.1` | current bundle |
+| Project release | `30.2.3-kepler.2` | current bundle |
 | OBS base | `30.2.3` | bundled |
 | FFmpeg base | `8.1` | bundled |
 | Primary GPU target | `GeForce GTX 660` | validated |
@@ -175,6 +175,25 @@ That produces:
 - `dist/obs-studio-kepler-legacy-<version>.tar.gz`
 - `dist/obs-studio-kepler-legacy-<version>.tar.gz.sha256`
 
+The `.tar.gz` file is an extractable release bundle, not a pacman package.
+
+If you also want an installable Arch package and a quick artifact test pass, use:
+
+```bash
+./release.sh --arch-package --test-artifacts
+```
+
+That additionally produces:
+
+- `dist/obs-studio-kepler-legacy-bin-<version>-1-x86_64.pkg.tar.zst`
+- `dist/obs-studio-kepler-legacy-bin-<version>-1-x86_64.pkg.tar.zst.sha256`
+
+And you can install that package with:
+
+```bash
+sudo pacman -U dist/obs-studio-kepler-legacy-bin-*.pkg.tar.zst
+```
+
 The optional Arch packaging recipe lives in:
 
 - [`packaging/PKGBUILD`](packaging/PKGBUILD)
@@ -192,6 +211,12 @@ Validate only the patch series:
 
 ```bash
 ./scripts/check_patch_series.sh
+```
+
+Test release artifacts:
+
+```bash
+./scripts/test_release_artifacts.sh --build-package
 ```
 
 ## Documentation Index

@@ -47,6 +47,12 @@ If you want a versioned release archive first, create one with:
 ./release.sh
 ```
 
+Important:
+
+- the generated `.tar.gz` file is a generic release bundle
+- it is not directly installable with `pacman -U`
+- for `pacman -U`, use the generated `.pkg.tar.zst` package instead
+
 ## 1. Run Directly From the Project Folder
 
 This is the safest way to test the bundle before installing anything.
@@ -114,6 +120,13 @@ If you prefer an Arch package workflow, use the optional local `PKGBUILD`.
 From the project root:
 
 ```bash
+./release.sh --arch-package --test-artifacts
+sudo pacman -U dist/obs-studio-kepler-legacy-bin-*.pkg.tar.zst
+```
+
+Or, if you want to build the package manually:
+
+```bash
 ./release.sh
 cp dist/obs-studio-kepler-legacy-*.tar.gz packaging/
 cd packaging
@@ -175,6 +188,12 @@ This checks:
 - NVIDIA driver visibility
 - a real `h264_nvenc` encode test
 - Linux virtual camera status as an informational check
+
+To test the release artifacts themselves:
+
+```bash
+./scripts/test_release_artifacts.sh --build-package
+```
 
 ## 8. Build or Rebuild From Source
 
