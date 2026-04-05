@@ -227,6 +227,7 @@ Test release artifacts:
 | --- | --- |
 | [`docs/INSTALLATION.md`](docs/INSTALLATION.md) | end-user installation paths and install modes |
 | [`docs/BUILDING.md`](docs/BUILDING.md) | rebuilding OBS and FFmpeg from source |
+| [`docs/AUR.md`](docs/AUR.md) | preparing and publishing the AUR package |
 | [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) | common runtime and setup problems |
 | [`docs/VIRTUAL_CAMERA.md`](docs/VIRTUAL_CAMERA.md) | Linux virtual camera setup on Arch |
 | [`docs/HARDENING.md`](docs/HARDENING.md) | security posture and carried backports |
