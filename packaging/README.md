@@ -16,6 +16,11 @@ The package accepts either of these JACK providers on Arch Linux:
 - `pipewire-jack`
 - `jack2`
 
+For the PulseAudio-compatible audio layer on Arch Linux, either of these is valid:
+
+- `pipewire-pulse`
+- `pulseaudio`
+
 ## Supported Flow
 
 1. Create a release archive from the project root:
@@ -60,5 +65,5 @@ sudo pacman -U dist/obs-studio-kepler-legacy-bin-*.pkg.tar.zst
 
 - this is a local packaging recipe, not an official upstream Arch package
 - the package is intentionally named `obs-studio-kepler-legacy-bin` so it can coexist with the normal `obs-studio` package
-- the package depends on the JACK ABI, so `pipewire-jack` and `jack2` both satisfy it
+- the package depends on the JACK and PulseAudio client ABIs, so `pipewire-jack` / `jack2` and `pipewire-pulse` / `pulseaudio` can coexist with it
 - Linux virtual camera support still depends on the host `v4l2loopback` module

@@ -192,6 +192,8 @@ sudo pacman -U dist/obs-studio-kepler-legacy-bin-*.pkg.tar.zst
 
 The Arch package works with either `pipewire-jack` or `jack2`.
 
+For PulseAudio-compatible audio on Arch Linux, it also works with either `pipewire-pulse` or `pulseaudio`.
+
 The optional Arch packaging recipe lives in:
 
 - [`packaging/PKGBUILD`](packaging/PKGBUILD)

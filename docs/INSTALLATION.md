@@ -123,6 +123,11 @@ For the JACK dependency on Arch Linux, either of these is valid:
 - `pipewire-jack`
 - `jack2`
 
+For the PulseAudio-compatible audio layer on Arch Linux, either of these is valid:
+
+- `pipewire-pulse`
+- `pulseaudio`
+
 Manual package build from the project root:
 
 ```bash
