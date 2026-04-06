@@ -1,0 +1,43 @@
+# Patch-Name: 0018-libobs-nix-prefer-relocatable-module-path.patch
+# Patch-Origin: local compatibility patch for relocatable legacy bundles
+# Patch-Reason: prevent bundled installs from loading OBS modules twice from both the copied prefix and the original build prefix
+# Patch-Risk: low; only changes default module path ordering on Unix and keeps the compiled install path as a fallback
+diff --git a/libobs/obs-nix.c b/libobs/obs-nix.c
+--- a/libobs/obs-nix.c
++++ b/libobs/obs-nix.c
+@@ -68,19 +68,19 @@ static const struct obs_nix_hotkeys_vtable *hotkeys_vtable = NULL;
+ 
+ void add_default_module_paths(void)
+ {
++	bool added_relative_path = false;
+ 	char *module_bin_path =
+ 		os_get_executable_path_ptr("../" OBS_PLUGIN_PATH);
+ 	char *module_data_path = os_get_executable_path_ptr(
+ 		"../" OBS_DATA_PATH "/obs-plugins/%module%");
+ 
+ 	if (module_bin_path && module_data_path) {
+-		char *abs_module_bin_path =
+-			os_get_abs_path_ptr(module_bin_path);
++		char *abs_module_bin_path = os_get_abs_path_ptr(module_bin_path);
+ 
+-		if (abs_module_bin_path &&
+-		    strcmp(abs_module_bin_path, OBS_INSTALL_PREFIX
+-			   "/" OBS_PLUGIN_DESTINATION) != 0) {
++		if (abs_module_bin_path &&
++		    os_file_exists(abs_module_bin_path)) {
+ 			obs_add_module_path(module_bin_path, module_data_path);
++			added_relative_path = true;
+ 		}
+ 		bfree(abs_module_bin_path);
+ 	}
+@@ -89,6 +89,10 @@ void add_default_module_paths(void)
+ 	bfree(module_data_path);
+ 
+ 	for (int i = 0; i < module_patterns_size; i++) {
++		if (added_relative_path &&
++		    strcmp(module_bin[i],
++			   OBS_INSTALL_PREFIX "/" OBS_PLUGIN_DESTINATION) == 0)
++			continue;
+ 		obs_add_module_path(module_bin[i], module_data[i]);
+ 	}
+ }

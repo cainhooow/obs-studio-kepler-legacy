@@ -40,6 +40,8 @@ clone_or_update() {
 
   git -C "$dir" fetch --tags origin
   git -C "$dir" checkout --detach "$ref"
+  git -C "$dir" reset --hard "$ref"
+  git -C "$dir" clean -fdx
 }
 
 need_cmd git
