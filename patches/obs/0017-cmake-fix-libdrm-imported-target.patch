@@ -1,0 +1,57 @@
+# Patch-Name: 0017-cmake-fix-libdrm-imported-target.patch
+# Patch-Origin: Local compatibility patch for OBS Studio 30.2.3 build tooling.
+# Patch-Reason: The legacy FindLibdrm.cmake and libobs-opengl wiring do not propagate the actual libdrm include and link flags on older branches. The explicit-sync backport needs correct libdrm headers and link flags.
+# Patch-Risk: Low. Adjusts only the CMake finder metadata for libdrm on legacy builds.
+
+diff --git a/cmake/Modules/FindLibdrm.cmake b/cmake/Modules/FindLibdrm.cmake
+index 8e78d7a8c..5f3a6634c 100644
+--- a/cmake/Modules/FindLibdrm.cmake
++++ b/cmake/Modules/FindLibdrm.cmake
+@@ -8,9 +8,10 @@ if(PKG_CONFIG_FOUND)
+ 
+ find_path(
+   LIBDRM_INCLUDE_DIR
+-  NAMES libdrm/drm_fourcc.h
++  NAMES drm_fourcc.h
+   HINTS ${_LIBDRM_INCLUDE_DIRS}
+-  PATHS /usr/include /usr/local/include /opt/local/include)
++  PATHS /usr/include /usr/local/include /opt/local/include
++  PATH_SUFFIXES libdrm)
+ 
+ find_library(
+   LIBDRM_LIB
+@@ -27,6 +28,8 @@ if(LIBDRM_FOUND)
+ 
+   if(NOT TARGET Libdrm::Libdrm)
+     add_library(Libdrm::Libdrm INTERFACE IMPORTED)
+-    set_target_properties(Libdrm::Libdrm PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${LIBDRM_INCLUDE_DIRS}")
++    set_target_properties(Libdrm::Libdrm PROPERTIES
++      INTERFACE_INCLUDE_DIRECTORIES "${LIBDRM_INCLUDE_DIRS}"
++      INTERFACE_LINK_LIBRARIES "${LIBDRM_LIBRARIES}")
+   endif()
+ endif()
+diff --git a/libobs-opengl/CMakeLists.txt b/libobs-opengl/CMakeLists.txt
+index ee329e1d3..f8ec33071 100644
+--- a/libobs-opengl/CMakeLists.txt
++++ b/libobs-opengl/CMakeLists.txt
+@@ -44,6 +44,11 @@ target_sources(
+ 
+ target_compile_options(libobs-opengl PRIVATE $<$<COMPILE_LANG_AND_ID:C,AppleClang,Clang>:-Wno-strict-prototypes>)
+ 
++if(OS_LINUX OR OS_FREEBSD OR OS_OPENBSD)
++  target_include_directories(libobs-opengl PRIVATE "${LIBDRM_INCLUDE_DIR}")
++  target_link_libraries(libobs-opengl PRIVATE "${LIBDRM_LIB}")
++endif()
++
+ target_compile_definitions(libobs-opengl PRIVATE $<$<PLATFORM_ID:Darwin>:GL_SILENCE_DEPRECATION>)
+ 
+ target_link_libraries(
+@@ -58,7 +62,7 @@ target_link_libraries(
+           OBS::glad
+           "$<$<PLATFORM_ID:Darwin>:$<LINK_LIBRARY:FRAMEWORK,Cocoa.framework>>"
+           "$<$<PLATFORM_ID:Darwin>:$<LINK_LIBRARY:FRAMEWORK,IOSurface.framework>>"
+-          $<$<PLATFORM_ID:Linux,FreeBSD,OpenBSD>:Libdrm::Libdrm>
++          $<$<PLATFORM_ID:Linux,FreeBSD,OpenBSD>:Libdrm::Libdrm>
+           $<$<PLATFORM_ID:Linux,FreeBSD,OpenBSD>:xcb::xcb>
+           $<$<PLATFORM_ID:Linux,FreeBSD,OpenBSD>:X11::x11-xcb>
+           $<$<AND:$<PLATFORM_ID:Linux,FreeBSD,OpenBSD>,$<BOOL:${ENABLE_WAYLAND}>>:OpenGL::EGL>

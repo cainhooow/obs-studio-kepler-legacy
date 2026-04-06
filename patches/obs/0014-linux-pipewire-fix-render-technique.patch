@@ -1,0 +1,54 @@
+# Patch-Name: 0014-linux-pipewire-fix-render-technique.patch
+# Patch-Origin: Adapted from upstream OBS Studio commit f614064eb46836fffc40cb21f094de200db1b655 and PR #12210.
+# Patch-Reason: Fix PipeWire capture rendering to use the correct base effect path for sRGB and transparency handling in preview and output.
+# Patch-Risk: Medium. Adjusts the PipeWire render path and framebuffer sRGB handling during source draw.
+
+diff --git a/plugins/linux-pipewire/pipewire.c b/plugins/linux-pipewire/pipewire.c
+index 561271684..771162710 100644
+--- a/plugins/linux-pipewire/pipewire.c
++++ b/plugins/linux-pipewire/pipewire.c
+@@ -1454,8 +1454,19 @@ void obs_pipewire_stream_video_render(obs_pipewire_stream *obs_pw_stream,
+ 		gs_sync_destroy(acquire_sync);
+ 	}
+ 
++	effect = obs_get_base_effect(OBS_EFFECT_DEFAULT);
++	gs_technique_t *tech = gs_effect_get_technique(effect, "DrawSrgbDecompress");
++	gs_technique_begin(tech);
++	gs_technique_begin_pass(tech, 0);
++
++	const bool linear_srgb = gs_get_linear_srgb();
++	const bool previous = gs_framebuffer_srgb_enabled();
++	gs_enable_framebuffer_srgb(linear_srgb);
+ 	image = gs_effect_get_param_by_name(effect, "image");
+-	gs_effect_set_texture(image, obs_pw_stream->texture);
++	if (linear_srgb)
++		gs_effect_set_texture_srgb(image, obs_pw_stream->texture);
++	else
++		gs_effect_set_texture(image, obs_pw_stream->texture);
+ 
+ 	rotated = push_rotation(obs_pw_stream);
+ 
+@@ -1495,7 +1506,12 @@ void obs_pipewire_stream_video_render(obs_pipewire_stream *obs_pw_stream,
+ 		gs_matrix_push();
+ 		gs_matrix_translate3f(cursor_x, cursor_y, 0.0f);
+ 
+-		gs_effect_set_texture(image, obs_pw_stream->cursor.texture);
++		if (linear_srgb)
++			gs_effect_set_texture_srgb(
++				image, obs_pw_stream->cursor.texture);
++		else
++			gs_effect_set_texture(image,
++					      obs_pw_stream->cursor.texture);
+ 		gs_draw_sprite(obs_pw_stream->texture, 0,
+ 			       obs_pw_stream->cursor.width,
+ 			       obs_pw_stream->cursor.height);
+@@ -1504,6 +1520,9 @@ void obs_pipewire_stream_video_render(obs_pipewire_stream *obs_pw_stream,
+ 	}
+ 
+ 	gs_blend_state_pop();
++	gs_enable_framebuffer_srgb(previous);
++	gs_technique_end_pass(tech);
++	gs_technique_end(tech);
+ 
+ 	if (obs_pw_stream->sync.set) {
+ 		gs_sync_t *release_sync = gs_sync_create();

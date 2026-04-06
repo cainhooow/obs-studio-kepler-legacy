@@ -1,0 +1,57 @@
+# Patch-Name: 0015-linux-pipewire-dup-syncobj-fds.patch
+# Patch-Origin: Adapted from upstream OBS Studio commit a7de3f4bdebbddf49b96ee267fa2923d3bc59965 and PR #12411.
+# Patch-Reason: Keep PipeWire explicit-sync file descriptors valid across renegotiation so OBS does not race closed syncobj handles during rendering.
+# Patch-Risk: Medium. Changes explicit-sync file-descriptor lifetime management in the PipeWire source.
+
+diff --git a/plugins/linux-pipewire/pipewire.c b/plugins/linux-pipewire/pipewire.c
+index 771162710..d7606311f 100644
+--- a/plugins/linux-pipewire/pipewire.c
++++ b/plugins/linux-pipewire/pipewire.c
+@@ -26,6 +26,7 @@
+ 
+ #include <gio/gio.h>
+ #include <gio/gunixfdlist.h>
++#include <glib/gstdio.h>
+ 
+ #include <fcntl.h>
+ #include <glad/glad.h>
+@@ -833,14 +834,18 @@ static void process_video_sync(obs_pipewire_stream *obs_pw_stream)
+ 		}
+ 
+ #if PW_CHECK_VERSION(1, 2, 0)
++		g_clear_fd(&obs_pw_stream->sync.acquire_syncobj_fd, NULL);
++		g_clear_fd(&obs_pw_stream->sync.release_syncobj_fd, NULL);
++
+ 		if (synctimeline && (buffer->n_datas == (planes + 2))) {
+ 			assert(buffer->datas[planes].type == SPA_DATA_SyncObj);
+ 			assert(buffer->datas[planes + 1].type == SPA_DATA_SyncObj);
+ 
+-			obs_pw_stream->sync.acquire_syncobj_fd = buffer->datas[planes].fd;
++			obs_pw_stream->sync.acquire_syncobj_fd = fcntl(buffer->datas[planes].fd, F_DUPFD_CLOEXEC, 5);
+ 			obs_pw_stream->sync.acquire_point = synctimeline->acquire_point;
+ 
+-			obs_pw_stream->sync.release_syncobj_fd = buffer->datas[planes + 1].fd;
++			obs_pw_stream->sync.release_syncobj_fd =
++				fcntl(buffer->datas[planes + 1].fd, F_DUPFD_CLOEXEC, 5);
+ 			obs_pw_stream->sync.release_point = synctimeline->release_point;
+ 
+ 			obs_pw_stream->sync.set = true;
+@@ -1308,6 +1313,8 @@ obs_pipewire_stream *obs_pipewire_connect_stream(
+ 	obs_pw_stream->cursor.visible = connect_info->screencast.cursor_visible;
+ 	obs_pw_stream->framerate.set = connect_info->video.framerate != NULL;
+ 	obs_pw_stream->resolution.set = connect_info->video.resolution != NULL;
++	obs_pw_stream->sync.acquire_syncobj_fd = -1;
++	obs_pw_stream->sync.release_syncobj_fd = -1;
+ 
+ 	if (obs_pw_stream->framerate.set)
+ 		obs_pw_stream->framerate.fraction =
+@@ -1562,6 +1569,9 @@ void obs_pipewire_stream_destroy(obs_pipewire_stream *obs_pw_stream)
+ 	g_clear_pointer(&obs_pw_stream->stream, pw_stream_destroy);
+ 	pw_thread_loop_unlock(obs_pw_stream->obs_pw->thread_loop);
+ 
++	g_clear_fd(&obs_pw_stream->sync.acquire_syncobj_fd, NULL);
++	g_clear_fd(&obs_pw_stream->sync.release_syncobj_fd, NULL);
++
+ 	clear_format_info(obs_pw_stream);
+ 	bfree(obs_pw_stream);
+ }

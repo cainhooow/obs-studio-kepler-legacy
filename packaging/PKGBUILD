@@ -1,6 +1,6 @@
 pkgname=obs-studio-kepler-legacy-bin
 _pkgbuild_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-_bundlever="$(tr -d '\n' < "${_pkgbuild_dir}/../VERSION" 2>/dev/null || printf '%s\n' '30.2.3-kepler.2')"
+_bundlever="$(tr -d '\n' < "${_pkgbuild_dir}/../VERSION" 2>/dev/null || printf '%s\n' '30.2.3-kepler.3')"
 pkgver="${_bundlever//-/_}"
 pkgrel=1
 pkgdesc="Legacy OBS Studio + FFmpeg bundle for NVIDIA Kepler GPUs on Arch Linux"

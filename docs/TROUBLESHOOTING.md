@@ -116,6 +116,27 @@ By default it uses:
 ~/.config/obs-studio-kepler-legacy/obs-studio
 ```
 
+## Wayland Capture Flickers In Preview Or Output
+
+### Symptom
+
+- GNOME top bar or KDE panel appears to flicker only inside OBS preview, recording, or stream output
+- the desktop itself does not visibly flicker outside OBS
+
+### Cause
+
+Older bundle revisions can receive incomplete PipeWire frames on Wayland, especially on NVIDIA systems, if explicit synchronization is not negotiated correctly with the compositor.
+
+### Fix
+
+Use release `30.2.3-kepler.3` or newer, which backports the upstream PipeWire explicit-sync and render-path fixes used for this issue.
+
+If you rebuild from source, rebuild the OBS bundle with:
+
+```bash
+./scripts/build_obs_kepler.sh
+```
+
 ## HEVC NVENC Is Missing
 
 ### Symptom

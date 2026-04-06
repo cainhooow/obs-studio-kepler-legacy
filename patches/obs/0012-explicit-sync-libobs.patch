@@ -1,0 +1,651 @@
+# Patch-Name: 0012-explicit-sync-libobs.patch
+# Patch-Origin: Adapted from upstream OBS Studio commit 68ca91b21d5a621f3a40bfc3cd82f4206b3ec854 and PR #11708.
+# Patch-Reason: Backport gs_sync_t and the Linux EGL syncobj plumbing required for PipeWire explicit synchronization.
+# Patch-Risk: High. Extends libobs and libobs-opengl Linux rendering internals and links libdrm for syncobj support.
+
+diff --git a/libobs-opengl/CMakeLists.txt b/libobs-opengl/CMakeLists.txt
+index bb85d959d..ee329e1d3 100644
+--- a/libobs-opengl/CMakeLists.txt
++++ b/libobs-opengl/CMakeLists.txt
+@@ -12,6 +12,7 @@ endif()
+ if(OS_LINUX
+    OR OS_FREEBSD
+    OR OS_OPENBSD)
++  find_package(Libdrm REQUIRED)
+   find_package(X11 REQUIRED)
+   # cmake-format: off
+   find_package(Xcb REQUIRED xcb)
+@@ -58,6 +59,7 @@ target_link_libraries(
+           OBS::glad
+           "$<$<PLATFORM_ID:Darwin>:$<LINK_LIBRARY:FRAMEWORK,Cocoa.framework>>"
+           "$<$<PLATFORM_ID:Darwin>:$<LINK_LIBRARY:FRAMEWORK,IOSurface.framework>>"
++          $<$<PLATFORM_ID:Linux,FreeBSD,OpenBSD>:Libdrm::Libdrm>
+           $<$<PLATFORM_ID:Linux,FreeBSD,OpenBSD>:xcb::xcb>
+           $<$<PLATFORM_ID:Linux,FreeBSD,OpenBSD>:X11::x11-xcb>
+           $<$<AND:$<PLATFORM_ID:Linux,FreeBSD,OpenBSD>,$<BOOL:${ENABLE_WAYLAND}>>:OpenGL::EGL>
+diff --git a/libobs-opengl/gl-egl-common.c b/libobs-opengl/gl-egl-common.c
+index 77618dc58..da1e63ddb 100644
+--- a/libobs-opengl/gl-egl-common.c
++++ b/libobs-opengl/gl-egl-common.c
+@@ -26,6 +26,9 @@
+ 
+ #include <linux/types.h>
+ #include <asm/ioctl.h>
++#include <xf86drm.h>
++#include <unistd.h>
++#include <fcntl.h>
+ typedef unsigned int drm_handle_t;
+ 
+ #else
+@@ -428,6 +431,95 @@ bool gl_egl_query_dmabuf_modifiers_for_format(EGLDisplay egl_display,
+ 	return true;
+ }
+ 
++bool gl_egl_query_sync_capabilities(int drm_fd)
++{
++	uint64_t syncobjCap = 0;
++	uint64_t syncobjTimelineCap = 0;
++
++	drmGetCap(drm_fd, DRM_CAP_SYNCOBJ, &syncobjCap);
++	drmGetCap(drm_fd, DRM_CAP_SYNCOBJ_TIMELINE, &syncobjTimelineCap);
++	return syncobjCap && syncobjTimelineCap && (EGL_ANDROID_native_fence_sync > 0);
++}
++
++gs_sync_t *gl_egl_create_sync(EGLDisplay egl_display)
++{
++	gs_sync_t *sync = eglCreateSync(egl_display, EGL_SYNC_NATIVE_FENCE_ANDROID, NULL);
++	glFlush();
++	return sync;
++}
++
++gs_sync_t *gl_egl_create_sync_from_syncobj_timeline_point(EGLDisplay egl_display, int drm_fd, int syncobj_fd,
++							  uint64_t timeline_point)
++{
++	EGLSync sync;
++	int syncfile_fd = -1;
++	uint32_t syncobj_handle = 0;
++	uint32_t temp_handle = 0;
++
++	drmSyncobjFDToHandle(drm_fd, syncobj_fd, &syncobj_handle);
++	drmSyncobjTimelineWait(drm_fd, &syncobj_handle, &timeline_point, 1, INT64_MAX,
++			       DRM_SYNCOBJ_WAIT_FLAGS_WAIT_AVAILABLE, NULL);
++	drmSyncobjCreate(drm_fd, 0, &temp_handle);
++	drmSyncobjTransfer(drm_fd, temp_handle, 0, syncobj_handle, timeline_point, 0);
++	drmSyncobjExportSyncFile(drm_fd, temp_handle, &syncfile_fd);
++	drmSyncobjDestroy(drm_fd, temp_handle);
++	drmSyncobjDestroy(drm_fd, syncobj_handle);
++
++	const EGLAttrib attributes[] = {EGL_SYNC_NATIVE_FENCE_FD_ANDROID, syncfile_fd, EGL_NONE};
++
++	sync = eglCreateSync(egl_display, EGL_SYNC_NATIVE_FENCE_ANDROID, attributes);
++	if (sync == EGL_NO_SYNC) {
++		blog(LOG_ERROR, "Unable to create an EGLSync object from a syncfile fd");
++		close(syncfile_fd);
++	}
++
++	return sync;
++}
++
++bool gl_egl_sync_export_syncobj_timeline_point(EGLDisplay egl_display, gs_sync_t *sync, int drm_fd, int syncobj_fd,
++					       uint64_t timeline_point)
++{
++	uint32_t syncobj_handle = 0;
++	uint32_t temp_handle = 0;
++
++	int gs_sync_fd = eglDupNativeFenceFDANDROID(egl_display, sync);
++	if (gs_sync_fd == EGL_NO_NATIVE_FENCE_FD_ANDROID) {
++		return false;
++	}
++
++	drmSyncobjFDToHandle(drm_fd, syncobj_fd, &syncobj_handle);
++	drmSyncobjCreate(drm_fd, 0, &temp_handle);
++	drmSyncobjImportSyncFile(drm_fd, temp_handle, gs_sync_fd);
++	drmSyncobjTransfer(drm_fd, syncobj_handle, timeline_point, temp_handle, 0, 0);
++	drmSyncobjDestroy(drm_fd, temp_handle);
++	drmSyncobjDestroy(drm_fd, syncobj_handle);
++	close(gs_sync_fd);
++
++	return true;
++}
++
++bool gl_egl_sync_signal_syncobj_timeline_point(int drm_fd, int syncobj_fd, uint64_t timeline_point)
++{
++	uint32_t syncobj_handle = 0;
++	bool result;
++
++	drmSyncobjFDToHandle(drm_fd, syncobj_fd, &syncobj_handle);
++	result = drmSyncobjTimelineSignal(drm_fd, &syncobj_handle, &timeline_point, 1) == 0;
++	drmSyncobjDestroy(drm_fd, syncobj_handle);
++
++	return result;
++}
++
++void gl_egl_device_sync_destroy(EGLDisplay egl_display, gs_sync_t *sync)
++{
++	eglDestroySync(egl_display, sync);
++}
++
++bool gl_egl_sync_wait(EGLDisplay egl_display, gs_sync_t *sync)
++{
++	return eglWaitSync(egl_display, sync, 0);
++}
++
+ const char *gl_egl_error_to_string(EGLint error_number)
+ {
+ 	switch (error_number) {
+@@ -481,3 +573,26 @@ const char *gl_egl_error_to_string(EGLint error_number)
+ 		break;
+ 	}
+ }
++
++int get_drm_render_node_fd(EGLDisplay egl_display)
++{
++	EGLAttrib attrib;
++	EGLDeviceEXT device;
++	const char *drm_render_node_path;
++
++	if (eglQueryDisplayAttribEXT(egl_display, EGL_DEVICE_EXT, &attrib) != EGL_TRUE) {
++		return -1;
++	}
++	device = (EGLDeviceEXT)attrib;
++	drm_render_node_path = eglQueryDeviceStringEXT(device, EGL_DRM_RENDER_NODE_FILE_EXT);
++	if (drm_render_node_path == NULL) {
++		return -1;
++	}
++
++	return open(drm_render_node_path, O_RDWR | O_CLOEXEC);
++}
++
++void close_drm_render_node_fd(int fd)
++{
++	close(fd);
++}
+diff --git a/libobs-opengl/gl-egl-common.h b/libobs-opengl/gl-egl-common.h
+index 8cc9648f0..e7a500501 100644
+--- a/libobs-opengl/gl-egl-common.h
++++ b/libobs-opengl/gl-egl-common.h
+@@ -6,6 +6,10 @@
+ 
+ const char *gl_egl_error_to_string(EGLint error_number);
+ 
++int get_drm_render_node_fd(EGLDisplay egl_display);
++
++void close_drm_render_node_fd(int fd);
++
+ struct gs_texture *
+ gl_egl_create_dmabuf_image(EGLDisplay egl_display, unsigned int width,
+ 			   unsigned int height, uint32_t drm_format,
+@@ -33,3 +37,19 @@ bool gl_egl_enum_adapters(EGLDisplay display,
+ 					   uint32_t id),
+ 			  void *param);
+ uint32_t gs_get_adapter_count();
++
++bool gl_egl_query_sync_capabilities(int drm_fd);
++
++gs_sync_t *gl_egl_create_sync(EGLDisplay egl_display);
++
++gs_sync_t *gl_egl_create_sync_from_syncobj_timeline_point(EGLDisplay egl_display, int drm_fd, int syncobj_fd,
++							  uint64_t timeline_point);
++
++void gl_egl_device_sync_destroy(EGLDisplay egl_display, gs_sync_t *sync);
++
++bool gl_egl_sync_export_syncobj_timeline_point(EGLDisplay egl_display, gs_sync_t *sync, int drm_fd, int syncobj_fd,
++					       uint64_t timeline_point);
++
++bool gl_egl_sync_signal_syncobj_timeline_point(int drm_fd, int syncobj_fd, uint64_t timeline_point);
++
++bool gl_egl_sync_wait(EGLDisplay egl_display, gs_sync_t *sync);
+diff --git a/libobs-opengl/gl-nix.c b/libobs-opengl/gl-nix.c
+index 12bb43dc8..105a17b4f 100644
+--- a/libobs-opengl/gl-nix.c
++++ b/libobs-opengl/gl-nix.c
+@@ -184,3 +184,39 @@ struct gs_texture *device_texture_create_from_pixmap(
+ 	return gl_vtable->device_texture_create_from_pixmap(
+ 		device, width, height, color_format, target, pixmap);
+ }
++
++bool device_query_sync_capabilities(gs_device_t *device)
++{
++	return gl_vtable->device_query_sync_capabilities(device);
++}
++
++gs_sync_t *device_sync_create(gs_device_t *device)
++{
++	return gl_vtable->device_sync_create(device);
++}
++
++gs_sync_t *device_sync_create_from_syncobj_timeline_point(gs_device_t *device, int syncobj_fd, uint64_t timeline_point)
++{
++	return gl_vtable->device_sync_create_from_syncobj_timeline_point(device, syncobj_fd, timeline_point);
++}
++
++void device_sync_destroy(gs_device_t *device, gs_sync_t *sync)
++{
++	return gl_vtable->device_sync_destroy(device, sync);
++}
++
++bool device_sync_export_syncobj_timeline_point(gs_device_t *device, gs_sync_t *sync, int syncobj_fd,
++					       uint64_t timeline_point)
++{
++	return gl_vtable->device_sync_export_syncobj_timeline_point(device, sync, syncobj_fd, timeline_point);
++}
++
++bool device_sync_signal_syncobj_timeline_point(gs_device_t *device, int syncobj_fd, uint64_t timeline_point)
++{
++	return gl_vtable->device_sync_signal_syncobj_timeline_point(device, syncobj_fd, timeline_point);
++}
++
++bool device_sync_wait(gs_device_t *device, gs_sync_t *sync)
++{
++	return gl_vtable->device_sync_wait(device, sync);
++}
+diff --git a/libobs-opengl/gl-nix.h b/libobs-opengl/gl-nix.h
+index f0c4d2007..5c5ffc0e2 100644
+--- a/libobs-opengl/gl-nix.h
++++ b/libobs-opengl/gl-nix.h
+@@ -78,4 +78,20 @@ struct gl_winsys_vtable {
+ 						      const char *name,
+ 						      uint32_t id),
+ 				     void *param);
++
++	bool (*device_query_sync_capabilities)(gs_device_t *device);
++
++	gs_sync_t *(*device_sync_create)(gs_device_t *device);
++
++	gs_sync_t *(*device_sync_create_from_syncobj_timeline_point)(gs_device_t *device, int syncobj_fd,
++								     uint64_t timeline_point);
++
++	void (*device_sync_destroy)(gs_device_t *device, gs_sync_t *sync);
++
++	bool (*device_sync_export_syncobj_timeline_point)(gs_device_t *device, gs_sync_t *sync, int syncobj_fd,
++							  uint64_t timeline_point);
++
++	bool (*device_sync_signal_syncobj_timeline_point)(gs_device_t *device, int syncobj_fd, uint64_t timeline_point);
++
++	bool (*device_sync_wait)(gs_device_t *device, gs_sync_t *sync);
+ };
+diff --git a/libobs-opengl/gl-subsystem.h b/libobs-opengl/gl-subsystem.h
+index 33bcc2a35..493be2717 100644
+--- a/libobs-opengl/gl-subsystem.h
++++ b/libobs-opengl/gl-subsystem.h
+@@ -669,6 +669,8 @@ struct gs_device {
+ 	struct fbo_info *cur_fbo;
+ };
+ 
++typedef void *gs_sync;
++
+ extern struct fbo_info *get_fbo(gs_texture_t *tex, uint32_t width,
+ 				uint32_t height);
+ 
+diff --git a/libobs-opengl/gl-wayland-egl.c b/libobs-opengl/gl-wayland-egl.c
+index 913ca3c3a..c40291675 100644
+--- a/libobs-opengl/gl-wayland-egl.c
++++ b/libobs-opengl/gl-wayland-egl.c
+@@ -90,6 +90,8 @@ struct gl_platform {
+ 	EGLDisplay display;
+ 	EGLConfig config;
+ 	EGLContext context;
++
++	int drm_fd;
+ };
+ 
+ struct gl_windowinfo *
+@@ -239,6 +241,11 @@ static struct gl_platform *gl_wayland_egl_platform_create(gs_device_t *device,
+ 		goto fail_load_egl;
+ 	}
+ 
++	plat->drm_fd = get_drm_render_node_fd(plat->display);
++	if (plat->drm_fd < 0) {
++		blog(LOG_WARNING, "Unable to open DRM render node.");
++	}
++
+ 	goto success;
+ 
+ fail_load_egl:
+@@ -259,6 +266,7 @@ static void gl_wayland_egl_platform_destroy(struct gl_platform *plat)
+ 	if (plat) {
+ 		egl_context_destroy(plat);
+ 		eglTerminate(plat->display);
++		close_drm_render_node_fd(plat->drm_fd);
+ 		bfree(plat);
+ 	}
+ }
+@@ -408,6 +416,58 @@ static bool gl_wayland_egl_enum_adapters(gs_device_t *device,
+ 	return gl_egl_enum_adapters(device->plat->display, callback, param);
+ }
+ 
++static bool gl_wayland_egl_device_query_sync_capabilities(gs_device_t *device)
++{
++	struct gl_platform *plat = device->plat;
++
++	return gl_egl_query_sync_capabilities(plat->drm_fd);
++}
++
++static gs_sync_t *gl_wayland_egl_device_sync_create(gs_device_t *device)
++{
++	struct gl_platform *plat = device->plat;
++
++	return gl_egl_create_sync(plat->display);
++}
++
++static gs_sync_t *gl_wayland_egl_device_sync_create_from_syncobj_timeline_point(gs_device_t *device, int syncobj_fd,
++										uint64_t timeline_point)
++{
++	struct gl_platform *plat = device->plat;
++
++	return gl_egl_create_sync_from_syncobj_timeline_point(plat->display, plat->drm_fd, syncobj_fd, timeline_point);
++}
++
++static void gl_wayland_egl_device_sync_destroy(gs_device_t *device, gs_sync_t *sync)
++{
++	struct gl_platform *plat = device->plat;
++
++	gl_egl_device_sync_destroy(plat->display, sync);
++}
++
++static bool gl_wayland_egl_device_sync_export_syncobj_timeline_point(gs_device_t *device, gs_sync_t *sync,
++								     int syncobj_fd, uint64_t timeline_point)
++{
++	struct gl_platform *plat = device->plat;
++
++	return gl_egl_sync_export_syncobj_timeline_point(plat->display, sync, plat->drm_fd, syncobj_fd, timeline_point);
++}
++
++static bool gl_wayland_egl_device_sync_signal_syncobj_timeline_point(gs_device_t *device, int syncobj_fd,
++								     uint64_t timeline_point)
++{
++	struct gl_platform *plat = device->plat;
++
++	return gl_egl_sync_signal_syncobj_timeline_point(plat->drm_fd, syncobj_fd, timeline_point);
++}
++
++static bool gl_wayland_egl_device_sync_wait(gs_device_t *device, gs_sync_t *sync)
++{
++	struct gl_platform *plat = device->plat;
++
++	return gl_egl_sync_wait(plat->display, sync);
++}
++
+ static const struct gl_winsys_vtable egl_wayland_winsys_vtable = {
+ 	.windowinfo_create = gl_wayland_egl_windowinfo_create,
+ 	.windowinfo_destroy = gl_wayland_egl_windowinfo_destroy,
+@@ -432,6 +492,13 @@ static const struct gl_winsys_vtable egl_wayland_winsys_vtable = {
+ 	.device_texture_create_from_pixmap =
+ 		gl_wayland_egl_device_texture_create_from_pixmap,
+ 	.device_enum_adapters = gl_wayland_egl_enum_adapters,
++	.device_query_sync_capabilities = gl_wayland_egl_device_query_sync_capabilities,
++	.device_sync_create = gl_wayland_egl_device_sync_create,
++	.device_sync_create_from_syncobj_timeline_point = gl_wayland_egl_device_sync_create_from_syncobj_timeline_point,
++	.device_sync_destroy = gl_wayland_egl_device_sync_destroy,
++	.device_sync_export_syncobj_timeline_point = gl_wayland_egl_device_sync_export_syncobj_timeline_point,
++	.device_sync_signal_syncobj_timeline_point = gl_wayland_egl_device_sync_signal_syncobj_timeline_point,
++	.device_sync_wait = gl_wayland_egl_device_sync_wait,
+ };
+ 
+ const struct gl_winsys_vtable *gl_wayland_egl_get_winsys_vtable(void)
+diff --git a/libobs-opengl/gl-x11-egl.c b/libobs-opengl/gl-x11-egl.c
+index 9b200d1b6..bfb8c1965 100644
+--- a/libobs-opengl/gl-x11-egl.c
++++ b/libobs-opengl/gl-x11-egl.c
+@@ -83,6 +83,7 @@ struct gl_platform {
+ 	EGLContext context;
+ 	EGLSurface pbuffer;
+ 	bool close_xdisplay;
++	int drm_fd;
+ };
+ 
+ /* The following utility function is copied verbatim from GLX code. */
+@@ -363,6 +364,11 @@ static struct gl_platform *gl_x11_egl_platform_create(gs_device_t *device,
+ 		goto fail_load_gl;
+ 	}
+ 
++	plat->drm_fd = get_drm_render_node_fd(plat->edisplay);
++	if (plat->drm_fd < 0) {
++		blog(LOG_WARNING, "Unable to open DRM render node.");
++	}
++
+ 	goto success;
+ 
+ fail_make_current:
+@@ -388,6 +394,7 @@ static void gl_x11_egl_platform_destroy(struct gl_platform *plat)
+ 	eglTerminate(plat->edisplay);
+ 	if (plat->close_xdisplay)
+ 		XCloseDisplay(plat->xdisplay);
++	close_drm_render_node_fd(plat->drm_fd);
+ 	bfree(plat);
+ }
+ 
+@@ -622,6 +629,59 @@ static bool gl_x11_egl_enum_adapters(gs_device_t *device,
+ 	return gl_egl_enum_adapters(device->plat->edisplay, callback, param);
+ }
+ 
++static bool gl_x11_egl_device_query_sync_capabilities(gs_device_t *device)
++{
++	struct gl_platform *plat = device->plat;
++
++	return gl_egl_query_sync_capabilities(plat->drm_fd);
++}
++
++static gs_sync_t *gl_x11_egl_device_sync_create(gs_device_t *device)
++{
++	struct gl_platform *plat = device->plat;
++
++	return gl_egl_create_sync(plat->edisplay);
++}
++
++static gs_sync_t *gl_x11_egl_device_sync_create_from_syncobj_timeline_point(gs_device_t *device, int syncobj_fd,
++									    uint64_t timeline_point)
++{
++	struct gl_platform *plat = device->plat;
++
++	return gl_egl_create_sync_from_syncobj_timeline_point(plat->edisplay, plat->drm_fd, syncobj_fd, timeline_point);
++}
++
++static void gl_x11_egl_device_sync_destroy(gs_device_t *device, gs_sync_t *sync)
++{
++	struct gl_platform *plat = device->plat;
++
++	gl_egl_device_sync_destroy(plat->edisplay, sync);
++}
++
++static bool gl_x11_egl_device_sync_export_syncobj_timeline_point(gs_device_t *device, gs_sync_t *sync, int syncobj_fd,
++								 uint64_t timeline_point)
++{
++	struct gl_platform *plat = device->plat;
++
++	return gl_egl_sync_export_syncobj_timeline_point(plat->edisplay, sync, plat->drm_fd, syncobj_fd,
++							 timeline_point);
++}
++
++static bool gl_x11_egl_device_sync_signal_syncobj_timeline_point(gs_device_t *device, int syncobj_fd,
++								 uint64_t timeline_point)
++{
++	struct gl_platform *plat = device->plat;
++
++	return gl_egl_sync_signal_syncobj_timeline_point(plat->drm_fd, syncobj_fd, timeline_point);
++}
++
++static bool gl_x11_egl_device_sync_wait(gs_device_t *device, gs_sync_t *sync)
++{
++	struct gl_platform *plat = device->plat;
++
++	return gl_egl_sync_wait(plat->edisplay, sync);
++}
++
+ static const struct gl_winsys_vtable egl_x11_winsys_vtable = {
+ 	.windowinfo_create = gl_x11_egl_windowinfo_create,
+ 	.windowinfo_destroy = gl_x11_egl_windowinfo_destroy,
+@@ -646,6 +706,13 @@ static const struct gl_winsys_vtable egl_x11_winsys_vtable = {
+ 	.device_texture_create_from_pixmap =
+ 		gl_x11_egl_device_texture_create_from_pixmap,
+ 	.device_enum_adapters = gl_x11_egl_enum_adapters,
++	.device_query_sync_capabilities = gl_x11_egl_device_query_sync_capabilities,
++	.device_sync_create = gl_x11_egl_device_sync_create,
++	.device_sync_create_from_syncobj_timeline_point = gl_x11_egl_device_sync_create_from_syncobj_timeline_point,
++	.device_sync_destroy = gl_x11_egl_device_sync_destroy,
++	.device_sync_export_syncobj_timeline_point = gl_x11_egl_device_sync_export_syncobj_timeline_point,
++	.device_sync_signal_syncobj_timeline_point = gl_x11_egl_device_sync_signal_syncobj_timeline_point,
++	.device_sync_wait = gl_x11_egl_device_sync_wait,
+ };
+ 
+ const struct gl_winsys_vtable *gl_x11_egl_get_winsys_vtable(void)
+diff --git a/libobs/graphics/device-exports.h b/libobs/graphics/device-exports.h
+index 650aadaa7..701d485de 100644
+--- a/libobs/graphics/device-exports.h
++++ b/libobs/graphics/device-exports.h
+@@ -211,6 +211,22 @@ EXPORT bool device_query_dmabuf_modifiers_for_format(gs_device_t *device,
+ EXPORT gs_texture_t *device_texture_create_from_pixmap(
+ 	gs_device_t *device, uint32_t width, uint32_t height,
+ 	enum gs_color_format color_format, uint32_t target, void *pixmap);
++
++EXPORT bool device_query_sync_capabilities(gs_device_t *device);
++
++EXPORT gs_sync_t *device_sync_create(gs_device_t *device);
++
++EXPORT gs_sync_t *device_sync_create_from_syncobj_timeline_point(gs_device_t *device, int syncobj_fd,
++								 uint64_t timeline_point);
++
++EXPORT void device_sync_destroy(gs_device_t *device, gs_sync_t *sync);
++
++EXPORT bool device_sync_export_syncobj_timeline_point(gs_device_t *device, gs_sync_t *sync, int syncobj_fd,
++						      uint64_t timeline_point);
++
++EXPORT bool device_sync_signal_syncobj_timeline_point(gs_device_t *device, int syncobj_fd, uint64_t timeline_point);
++
++EXPORT bool device_sync_wait(gs_device_t *device, gs_sync_t *sync);
+ #endif
+ 
+ #ifdef __cplusplus
+diff --git a/libobs/graphics/graphics-imports.c b/libobs/graphics/graphics-imports.c
+index 8e7bcc4d6..1986e6df5 100644
+--- a/libobs/graphics/graphics-imports.c
++++ b/libobs/graphics/graphics-imports.c
+@@ -243,6 +243,13 @@ bool load_graphics_imports(struct gs_exports *exports, void *module,
+ 	GRAPHICS_IMPORT(device_query_dmabuf_capabilities);
+ 	GRAPHICS_IMPORT(device_query_dmabuf_modifiers_for_format);
+ 	GRAPHICS_IMPORT(device_texture_create_from_pixmap);
++	GRAPHICS_IMPORT(device_query_sync_capabilities);
++	GRAPHICS_IMPORT(device_sync_create);
++	GRAPHICS_IMPORT(device_sync_create_from_syncobj_timeline_point);
++	GRAPHICS_IMPORT(device_sync_destroy);
++	GRAPHICS_IMPORT(device_sync_export_syncobj_timeline_point);
++	GRAPHICS_IMPORT(device_sync_signal_syncobj_timeline_point);
++	GRAPHICS_IMPORT(device_sync_wait);
+ #endif
+ 
+ 	return success;
+diff --git a/libobs/graphics/graphics-internal.h b/libobs/graphics/graphics-internal.h
+index 87cdbeae0..38f166043 100644
+--- a/libobs/graphics/graphics-internal.h
++++ b/libobs/graphics/graphics-internal.h
+@@ -371,6 +371,15 @@ struct gs_exports {
+ 		gs_device_t *device, uint32_t width, uint32_t height,
+ 		enum gs_color_format color_format, uint32_t target,
+ 		void *pixmap);
++	bool (*device_query_sync_capabilities)(gs_device_t *device);
++	gs_sync_t *(*device_sync_create)(gs_device_t *device);
++	gs_sync_t *(*device_sync_create_from_syncobj_timeline_point)(gs_device_t *device, int syncobj_fd,
++								     uint64_t timeline_point);
++	void (*device_sync_destroy)(gs_device_t *device, gs_sync_t *sync);
++	bool (*device_sync_export_syncobj_timeline_point)(gs_device_t *device, gs_sync_t *sync, int syncobj_fd,
++							  uint64_t timeline_point);
++	bool (*device_sync_signal_syncobj_timeline_point)(gs_device_t *device, int syncobj_fd, uint64_t timeline_point);
++	bool (*device_sync_wait)(gs_device_t *device, gs_sync_t *sync);
+ #endif
+ };
+ 
+diff --git a/libobs/graphics/graphics.c b/libobs/graphics/graphics.c
+index c064413f8..0c008872d 100644
+--- a/libobs/graphics/graphics.c
++++ b/libobs/graphics/graphics.c
+@@ -1432,6 +1432,58 @@ gs_texture_t *gs_texture_create_from_pixmap(uint32_t width, uint32_t height,
+ 		graphics->device, width, height, color_format, target, pixmap);
+ }
+ 
++bool gs_query_sync_capabilities(void)
++{
++	graphics_t *graphics = thread_graphics;
++
++	return graphics->exports.device_query_sync_capabilities(graphics->device);
++}
++
++gs_sync_t *gs_sync_create(void)
++{
++	graphics_t *graphics = thread_graphics;
++
++	return graphics->exports.device_sync_create(graphics->device);
++}
++
++gs_sync_t *gs_sync_create_from_syncobj_timeline_point(int syncobj_fd, uint64_t timeline_point)
++{
++	graphics_t *graphics = thread_graphics;
++
++	return graphics->exports.device_sync_create_from_syncobj_timeline_point(graphics->device, syncobj_fd,
++										timeline_point);
++}
++
++void gs_sync_destroy(gs_sync_t *sync)
++{
++	graphics_t *graphics = thread_graphics;
++
++	return graphics->exports.device_sync_destroy(graphics->device, sync);
++}
++
++bool gs_sync_export_syncobj_timeline_point(gs_sync_t *sync, int syncobj_fd, uint64_t timeline_point)
++{
++	graphics_t *graphics = thread_graphics;
++
++	return graphics->exports.device_sync_export_syncobj_timeline_point(graphics->device, sync, syncobj_fd,
++									   timeline_point);
++}
++
++bool gs_sync_signal_syncobj_timeline_point(int syncobj_fd, uint64_t timeline_point)
++{
++	graphics_t *graphics = thread_graphics;
++
++	return graphics->exports.device_sync_signal_syncobj_timeline_point(graphics->device, syncobj_fd,
++									   timeline_point);
++}
++
++bool gs_sync_wait(gs_sync_t *sync)
++{
++	graphics_t *graphics = thread_graphics;
++
++	return graphics->exports.device_sync_wait(graphics->device, sync);
++}
++
+ #endif
+ 
+ gs_texture_t *gs_cubetexture_create(uint32_t size,
+diff --git a/libobs/graphics/graphics.h b/libobs/graphics/graphics.h
+index 2237e6662..e29932d4f 100644
+--- a/libobs/graphics/graphics.h
++++ b/libobs/graphics/graphics.h
+@@ -299,6 +299,7 @@ typedef struct gs_effect_technique gs_technique_t;
+ typedef struct gs_effect_pass gs_epass_t;
+ typedef struct gs_effect_param gs_eparam_t;
+ typedef struct gs_device gs_device_t;
++typedef void gs_sync_t;
+ typedef struct graphics_subsystem graphics_t;
+ 
+ /* ---------------------------------------------------
+@@ -996,6 +997,19 @@ gs_texture_create_from_pixmap(uint32_t width, uint32_t height,
+ 			      enum gs_color_format color_format,
+ 			      uint32_t target, void *pixmap);
+ 
++EXPORT bool gs_query_sync_capabilities(void);
++
++EXPORT gs_sync_t *gs_sync_create(void);
++
++EXPORT gs_sync_t *gs_sync_create_from_syncobj_timeline_point(int syncobj_fd, uint64_t timeline_point);
++
++EXPORT void gs_sync_destroy(gs_sync_t *sync);
++
++EXPORT bool gs_sync_export_syncobj_timeline_point(gs_sync_t *sync, int syncobj_fd, uint64_t timeline_point);
++
++EXPORT bool gs_sync_signal_syncobj_timeline_point(int syncobj_fd, uint64_t timeline_point);
++
++EXPORT bool gs_sync_wait(gs_sync_t *sync);
+ #endif
+ 
+ /* inline functions used by modules */

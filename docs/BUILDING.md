@@ -31,6 +31,8 @@ They do not expect you to manually clone `obs-studio`, `FFmpeg`, `nv-codec-heade
 
 The OBS script also applies a few compatibility patches automatically during the build flow so this older OBS line can still build cleanly on the validated Arch environment.
 
+On Arch Linux, the OBS build script also injects the `libdrm` compiler and linker flags through `pkg-config` so the Wayland/PipeWire explicit-sync backport can compile cleanly against the system `libdrm` headers.
+
 Those patches are stored as versioned patch files under:
 
 - `patches/obs`

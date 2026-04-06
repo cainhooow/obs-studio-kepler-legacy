@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## 30.2.3-kepler.3 - 2026-04-06
+
+Wayland/PipeWire capture stability update for NVIDIA systems.
+
+### Added
+
+- upstream PipeWire explicit-sync backports for OBS `30.2.3`
+- upstream PipeWire render-technique and syncobj follow-up fixes needed for the explicit-sync path
+- local legacy-build compatibility patch for `libdrm`
+
+### Changed
+
+- `build_obs_kepler.sh` now injects `libdrm` compiler and linker flags via `pkg-config` on Arch Linux
+- the OBS bundle now links `libobs-opengl` against `libdrm`, enabling the explicit-sync backport at runtime
+
+### Fixed
+
+- reduced incomplete-frame flicker in Wayland PipeWire captures on NVIDIA, including GNOME top bar and KDE panel artifacts seen in OBS preview/output
+- fixed legacy OBS source builds on Arch that otherwise failed to compile the explicit-sync backport because `drm.h` was not on the compiler include path
+
 ## 30.2.3-kepler.2 - 2026-04-05
 
 Release packaging correction.

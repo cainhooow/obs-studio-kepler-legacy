@@ -15,7 +15,7 @@ It preserves a practical `H.264 NVENC` workflow for systems that still depend on
 
 | Item | Value | Status |
 | --- | --- | --- |
-| Project release | `30.2.3-kepler.2` | current bundle |
+| Project release | `30.2.3-kepler.3` | current bundle |
 | OBS base | `30.2.3` | bundled |
 | FFmpeg base | `8.1` | bundled |
 | Primary GPU target | `GeForce GTX 660` | validated |
@@ -83,6 +83,7 @@ This project deliberately keeps a known-good legacy path:
 - isolated config, cache, and state paths
 - user and system installers
 - an interactive setup wizard
+- upstream PipeWire explicit-sync/render-fix backports for Wayland screencast stability on NVIDIA
 - build scripts that download upstream sources automatically
 - ordered patch series with metadata and validation
 - Arch virtual camera setup helpers

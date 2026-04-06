@@ -93,6 +93,15 @@ curl -fsSL "https://raw.githubusercontent.com/nlohmann/json/${NLOHMANN_JSON_TAG}
 export PKG_CONFIG_PATH="$FFNV_PREFIX/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
 export CPLUS_INCLUDE_PATH="$DEPS_PREFIX/include${CPLUS_INCLUDE_PATH:+:$CPLUS_INCLUDE_PATH}"
 
+# OBS 30.2.x still uses the legacy build system. On Arch, libdrm headers live
+# under /usr/include/libdrm, and the explicit-sync backport needs both the
+# include path and libdrm link flags to be visible to the generated build.
+drm_cflags="$(pkg-config --cflags libdrm)"
+drm_libs="$(pkg-config --libs libdrm)"
+export CFLAGS="${drm_cflags}${CFLAGS:+ $CFLAGS}"
+export CXXFLAGS="${drm_cflags}${CXXFLAGS:+ $CXXFLAGS}"
+export LDFLAGS="${drm_libs}${LDFLAGS:+ $LDFLAGS}"
+
 rm -rf "$BUILD_DIR"
 
 echo "==> Configuring OBS"
