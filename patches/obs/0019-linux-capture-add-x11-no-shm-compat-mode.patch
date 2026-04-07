@@ -1,0 +1,172 @@
+# Patch-Name: 0019-linux-capture-add-x11-no-shm-compat-mode.patch
+# Patch-Origin: local compatibility patch for legacy X11 capture on NVIDIA
+# Patch-Reason: avoid XSHM-based capture flicker on X11 sessions by allowing a non-SHM capture path that can be enabled by the launcher
+# Patch-Risk: medium; changes the X11 screen capture code path, but keeps the original SHM path as the default unless explicitly disabled
+diff --git a/plugins/linux-capture/xshm-input.c b/plugins/linux-capture/xshm-input.c
+--- a/plugins/linux-capture/xshm-input.c
++++ b/plugins/linux-capture/xshm-input.c
+@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <inttypes.h>
++#include <strings.h>
+ #include <xcb/randr.h>
+ #include <xcb/shm.h>
+ #include <xcb/xfixes.h>
+@@ -62,6 +63,7 @@ struct xshm_data {
+ 	bool show_cursor;
+ 	bool use_xinerama;
+ 	bool use_randr;
++	bool use_shm;
+ 	bool advanced;
+ };
+ 
+@@ -83,11 +85,11 @@ static inline void xshm_resize_texture(struct xshm_data *data)
+ /**
+  * Check if the xserver supports all the extensions we need
+  */
+-static bool xshm_check_extensions(xcb_connection_t *xcb)
++static bool xshm_check_extensions(xcb_connection_t *xcb, bool require_shm)
+ {
+ 	bool ok = true;
+ 
+-	if (!xcb_get_extension_data(xcb, &xcb_shm_id)->present) {
++	if (require_shm && !xcb_get_extension_data(xcb, &xcb_shm_id)->present) {
+ 		blog(LOG_ERROR, "Missing SHM extension !");
+ 		ok = false;
+ 	}
+@@ -101,6 +103,20 @@ static bool xshm_check_extensions(xcb_connection_t *xcb)
+ 	return ok;
+ }
+ 
++static bool xshm_use_shm(void)
++{
++	const char *value = getenv("OBS_XSHM_NO_SHM");
++
++	if (!value || !*value)
++		return true;
++
++	if (strcmp(value, "0") == 0 || strcasecmp(value, "false") == 0 ||
++	    strcasecmp(value, "no") == 0)
++		return true;
++
++	return false;
++}
++
+ /**
+  * Update the capture
+  *
+@@ -231,7 +247,9 @@ static void xshm_capture_start(struct xshm_data *data)
+ 		goto fail;
+ 	}
+ 
+-	if (!xshm_check_extensions(data->xcb))
++	data->use_shm = xshm_use_shm();
++
++	if (!xshm_check_extensions(data->xcb, data->use_shm))
+ 		goto fail;
+ 
+ 	data->use_randr = randr_is_active(data->xcb) ? true : false;
+@@ -242,11 +260,16 @@ static void xshm_capture_start(struct xshm_data *data)
+ 		goto fail;
+ 	}
+ 
+-	data->xshm =
+-		xshm_xcb_attach(data->xcb, data->adj_width, data->adj_height);
+-	if (!data->xshm) {
+-		blog(LOG_ERROR, "failed to attach shm !");
+-		goto fail;
++	if (data->use_shm) {
++		data->xshm =
++			xshm_xcb_attach(data->xcb, data->adj_width,
++					data->adj_height);
++		if (!data->xshm) {
++			blog(LOG_ERROR, "failed to attach shm !");
++			goto fail;
++		}
++	} else {
++		blog(LOG_INFO, "Using X11 capture compatibility mode without SHM");
+ 	}
+ 
+ 	data->cursor = xcb_xcursor_init(data->xcb);
+@@ -493,30 +516,64 @@ static void xshm_video_tick(void *vptr, float seconds)
+ 	if (!obs_source_showing(data->source))
+ 		return;
+ 
+-	xcb_shm_get_image_cookie_t img_c;
+-	xcb_shm_get_image_reply_t *img_r;
++	if (data->use_shm) {
++		xcb_shm_get_image_cookie_t img_c;
++		xcb_shm_get_image_reply_t *img_r;
+ 
+-	img_c = xcb_shm_get_image_unchecked(data->xcb, data->xcb_screen->root,
+-					    data->adj_x_org, data->adj_y_org,
+-					    data->adj_width, data->adj_height,
+-					    ~0, XCB_IMAGE_FORMAT_Z_PIXMAP,
+-					    data->xshm->seg, 0);
++		img_c = xcb_shm_get_image_unchecked(
++			data->xcb, data->xcb_screen->root, data->adj_x_org,
++			data->adj_y_org, data->adj_width, data->adj_height, ~0,
++			XCB_IMAGE_FORMAT_Z_PIXMAP, data->xshm->seg, 0);
+ 
+-	img_r = xcb_shm_get_image_reply(data->xcb, img_c, NULL);
++		img_r = xcb_shm_get_image_reply(data->xcb, img_c, NULL);
+ 
+-	if (!img_r)
+-		goto exit;
++		if (!img_r)
++			goto exit;
+ 
+-	obs_enter_graphics();
++		obs_enter_graphics();
+ 
+-	gs_texture_set_image(data->texture, (void *)data->xshm->data,
+-			     data->adj_width * 4, false);
+-	xcb_xcursor_update(data->xcb, data->cursor);
++		gs_texture_set_image(data->texture, (void *)data->xshm->data,
++				     data->adj_width * 4, false);
++		xcb_xcursor_update(data->xcb, data->cursor);
+ 
+-	obs_leave_graphics();
++		obs_leave_graphics();
++
++		free(img_r);
++	} else {
++		xcb_get_image_cookie_t img_c;
++		xcb_get_image_reply_t *img_r;
++		uint8_t *img_data;
++		int img_len;
++
++		img_c = xcb_get_image_unchecked(
++			data->xcb, XCB_IMAGE_FORMAT_Z_PIXMAP,
++			data->xcb_screen->root, data->adj_x_org, data->adj_y_org,
++			data->adj_width, data->adj_height, ~0);
++
++		img_r = xcb_get_image_reply(data->xcb, img_c, NULL);
++		if (!img_r)
++			goto exit;
++
++		img_data = xcb_get_image_data(img_r);
++		img_len = xcb_get_image_data_length(img_r);
++		if (img_len < (data->adj_width * data->adj_height * 4)) {
++			free(img_r);
++			goto exit;
++		}
++
++		obs_enter_graphics();
++
++		gs_texture_set_image(data->texture, img_data,
++				     data->adj_width * 4, false);
++		xcb_xcursor_update(data->xcb, data->cursor);
++
++		obs_leave_graphics();
++
++		free(img_r);
++	}
+ 
+ exit:
+-	free(img_r);
++	return;
+ }
+ 
+ /**

@@ -32,4 +32,10 @@ export XDG_CACHE_HOME="$CACHE_BASE"
 export XDG_STATE_HOME="$STATE_BASE"
 export LD_LIBRARY_PATH="$OBS_PREFIX/lib:$FFMPEG_PREFIX/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 
+# NVIDIA on X11 can exhibit panel/top-bar flicker with the XSHM capture path.
+# Default to the non-SHM compatibility path on X11 unless the user overrides it.
+if [[ -z "${OBS_XSHM_NO_SHM:-}" && "${XDG_SESSION_TYPE:-}" == "x11" ]]; then
+  export OBS_XSHM_NO_SHM=1
+fi
+
 exec "$OBS_PREFIX/bin/obs" "$@"
