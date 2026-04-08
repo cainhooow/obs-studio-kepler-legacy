@@ -137,6 +137,25 @@ If you rebuild from source, rebuild the OBS bundle with:
 ./scripts/build_obs_kepler.sh
 ```
 
+## PipeWire Screen Capture Does Not Appear On X11
+
+### Symptom
+
+- the source list does not show `PipeWire Screen Capture`
+- you are logged into an X11 session
+
+### Cause
+
+This project intentionally hides the PipeWire screencast sources on X11 sessions.
+
+The target legacy stack for this project relies on portal-based PipeWire screencast only where it provides a continuous, supported capture path in practice. For the intended environments, that means Wayland sessions, not X11 sessions.
+
+### Fix
+
+There is no X11 fix inside this bundle for that source type.
+
+If you need PipeWire screen capture specifically, use a Wayland session. On X11, use the legacy X11 capture sources that ship with OBS instead.
+
 ## HEVC NVENC Is Missing
 
 ### Symptom

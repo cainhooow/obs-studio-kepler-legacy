@@ -110,7 +110,7 @@ Default system install locations:
 
 ## 4. Install From AUR
 
-Once the package is published on the AUR, the easiest Arch Linux install path is:
+The easiest Arch Linux install path is:
 
 ```bash
 paru -S obs-studio-kepler-legacy-bin
@@ -154,6 +154,8 @@ For the PulseAudio-compatible audio layer on Arch Linux, either of these is vali
 - `pulseaudio`
 
 For PipeWire-based features such as Wayland screen capture integration, keep the `pipewire` package installed on the host system.
+
+On X11 sessions, this project intentionally hides the PipeWire screen capture sources. They are only exposed on Wayland sessions, where the portal screencast path is suitable for continuous capture.
 
 Manual package build from the project root:
 

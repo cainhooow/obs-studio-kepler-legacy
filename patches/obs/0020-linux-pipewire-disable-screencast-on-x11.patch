@@ -1,0 +1,30 @@
+# Patch-Name: 0020-linux-pipewire-disable-screencast-on-x11.patch
+# Patch-Origin: local compatibility patch for legacy X11 deployments
+# Patch-Reason: hide PipeWire screencast sources on X11 where the portal-based continuous capture path is not reliable for the target legacy stack
+# Patch-Risk: low; only changes source registration in the linux-pipewire module and leaves Wayland screencast behavior unchanged
+diff --git a/plugins/linux-pipewire/linux-pipewire.c b/plugins/linux-pipewire/linux-pipewire.c
+--- a/plugins/linux-pipewire/linux-pipewire.c
++++ b/plugins/linux-pipewire/linux-pipewire.c
+@@ -35,6 +35,12 @@ MODULE_EXPORT const char *obs_module_description(void)
+ 
+ bool obs_module_load(void)
+ {
++	enum obs_nix_platform_type platform = obs_get_nix_platform();
++
++	if (platform != OBS_NIX_PLATFORM_WAYLAND) {
++		blog(LOG_INFO, "[pipewire] Screencast portal sources are disabled on non-Wayland sessions");
++	}
++
+ 	obs_enter_graphics();
+ 	gladLoadGL();
+ 	obs_leave_graphics();
+@@ -45,7 +51,8 @@ bool obs_module_load(void)
+ 	camera_portal_load();
+ #endif
+ 
+-	screencast_portal_load();
++	if (platform == OBS_NIX_PLATFORM_WAYLAND)
++		screencast_portal_load();
+ 
+ 	return true;
+ }

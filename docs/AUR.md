@@ -106,7 +106,7 @@ For new project releases:
 1. publish the GitHub release first
 2. rerun `./scripts/sync_aur_package.sh`
 3. copy the refreshed files into the AUR clone
-4. commit with a message such as `Update to 30.2.3_kepler.3-1`
+4. commit with a message such as `Update to <pkgver>-1`
 5. push to `master`
 
 ## Notes Specific To This Project
@@ -115,3 +115,4 @@ For new project releases:
 - the package intentionally does not conflict with the official `obs-studio` package
 - the package depends on `libjack.so=0-64`, `libpipewire-0.3.so=0-64`, and `libpulse.so=0-64` so it does not force a specific JACK or PulseAudio server implementation
 - keep the host `pipewire` package installed if you rely on PipeWire-backed features such as Wayland screen capture
+- note that this project intentionally hides PipeWire screen capture sources on X11 sessions

@@ -23,6 +23,8 @@ For the PulseAudio-compatible audio layer on Arch Linux, either of these is vali
 
 For PipeWire-based features such as Wayland screen capture integration, keep the `pipewire` package installed on the host system.
 
+On X11 sessions, this project intentionally hides the PipeWire screen capture sources. They are only exposed on Wayland sessions.
+
 ## Supported Flow
 
 1. Create a release archive from the project root:

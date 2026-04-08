@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## 30.2.3-kepler.4 - 2026-04-08
+
+X11 PipeWire source visibility update.
+
+### Changed
+
+- the `linux-pipewire` module now registers screencast sources only on Wayland sessions
+- X11 sessions no longer expose PipeWire screen capture sources that rely on unsupported or misleading portal screencast paths for this legacy target
+
+### Documentation
+
+- documented that PipeWire screen capture is intentionally Wayland-only in this project
+- added troubleshooting guidance for users who expect PipeWire screen capture to appear on X11
+
 ## 30.2.3-kepler.3 - 2026-04-06
 
 Wayland/PipeWire capture stability update for NVIDIA systems.

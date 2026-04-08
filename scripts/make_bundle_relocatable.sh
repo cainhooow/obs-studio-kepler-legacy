@@ -50,6 +50,12 @@ EOF
 
 OBS_PREFIX="$ROOT_DIR/.local/obs-kepler"
 FFMPEG_PREFIX="$ROOT_DIR/.local/ffmpeg-nvenc470"
+OBS_BIN_RPATH="\$ORIGIN/../lib"
+OBS_MUX_RPATH="\$ORIGIN/../lib:\$ORIGIN/../../ffmpeg-nvenc470/lib"
+OBS_LIB_RPATH="\$ORIGIN:\$ORIGIN/../../ffmpeg-nvenc470/lib"
+OBS_PLUGIN_RPATH="\$ORIGIN/..:\$ORIGIN/../../../ffmpeg-nvenc470/lib"
+FFMPEG_BIN_RPATH="\$ORIGIN/../lib"
+FFMPEG_LIB_RPATH="\$ORIGIN"
 
 wrap_binary \
   "$OBS_PREFIX/bin/obs" \
@@ -71,34 +77,34 @@ wrap_binary \
   "$FFMPEG_PREFIX/bin/ffplay" \
   "\$PREFIX/lib"
 
-set_rpath "$OBS_PREFIX/bin/obs.real" '$ORIGIN/../lib'
-set_rpath "$OBS_PREFIX/bin/obs-ffmpeg-mux.real" '$ORIGIN/../lib:$ORIGIN/../../ffmpeg-nvenc470/lib'
+set_rpath "$OBS_PREFIX/bin/obs.real" "$OBS_BIN_RPATH"
+set_rpath "$OBS_PREFIX/bin/obs-ffmpeg-mux.real" "$OBS_MUX_RPATH"
 
 if [[ -d "$OBS_PREFIX/lib" ]]; then
   while IFS= read -r -d '' target; do
-    set_rpath "$target" '$ORIGIN:$ORIGIN/../../ffmpeg-nvenc470/lib'
+    set_rpath "$target" "$OBS_LIB_RPATH"
   done < <(find "$OBS_PREFIX/lib" -maxdepth 1 -type f \( -name '*.so' -o -name '*.so.*' \) -print0)
 fi
 
 if [[ -d "$OBS_PREFIX/lib/obs-plugins" ]]; then
   while IFS= read -r -d '' target; do
-    set_rpath "$target" '$ORIGIN/..:$ORIGIN/../../../ffmpeg-nvenc470/lib'
+    set_rpath "$target" "$OBS_PLUGIN_RPATH"
   done < <(find "$OBS_PREFIX/lib/obs-plugins" -maxdepth 1 -type f -name '*.so' -print0)
 fi
 
 if [[ -d "$OBS_PREFIX/lib/obs-scripting" ]]; then
   while IFS= read -r -d '' target; do
-    set_rpath "$target" '$ORIGIN/..:$ORIGIN/../../../ffmpeg-nvenc470/lib'
+    set_rpath "$target" "$OBS_PLUGIN_RPATH"
   done < <(find "$OBS_PREFIX/lib/obs-scripting" -maxdepth 1 -type f -name '*.so' -print0)
 fi
 
-set_rpath "$FFMPEG_PREFIX/bin/ffmpeg.real" '$ORIGIN/../lib'
-set_rpath "$FFMPEG_PREFIX/bin/ffprobe.real" '$ORIGIN/../lib'
-set_rpath "$FFMPEG_PREFIX/bin/ffplay.real" '$ORIGIN/../lib'
+set_rpath "$FFMPEG_PREFIX/bin/ffmpeg.real" "$FFMPEG_BIN_RPATH"
+set_rpath "$FFMPEG_PREFIX/bin/ffprobe.real" "$FFMPEG_BIN_RPATH"
+set_rpath "$FFMPEG_PREFIX/bin/ffplay.real" "$FFMPEG_BIN_RPATH"
 
 if [[ -d "$FFMPEG_PREFIX/lib" ]]; then
   while IFS= read -r -d '' target; do
-    set_rpath "$target" '$ORIGIN'
+    set_rpath "$target" "$FFMPEG_LIB_RPATH"
   done < <(find "$FFMPEG_PREFIX/lib" -maxdepth 1 -type f \( -name '*.so' -o -name '*.so.*' \) -print0)
 fi
 

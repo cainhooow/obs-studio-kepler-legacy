@@ -11,7 +11,7 @@ if [[ -z "${PROJECT_VERSION:-}" ]]; then
   if [[ -f "$PROJECT_VERSION_FILE" ]]; then
     PROJECT_VERSION="$(tr -d '\n' < "$PROJECT_VERSION_FILE")"
   else
-    PROJECT_VERSION="30.2.3-kepler.3"
+    PROJECT_VERSION="30.2.3-kepler.4"
   fi
 fi
 

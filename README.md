@@ -15,7 +15,7 @@ It preserves a practical `H.264 NVENC` workflow for systems that still depend on
 
 | Item | Value | Status |
 | --- | --- | --- |
-| Project release | `30.2.3-kepler.3` | current bundle |
+| Project release | `30.2.3-kepler.4` | current bundle |
 | OBS base | `30.2.3` | bundled |
 | FFmpeg base | `8.1` | bundled |
 | Primary GPU target | `GeForce GTX 660` | validated |
@@ -23,6 +23,8 @@ It preserves a practical `H.264 NVENC` workflow for systems that still depend on
 | NVENC | `H.264` | working |
 | HEVC NVENC | Kepler GTX 660 | intentionally not exposed |
 | Virtual camera | `linux-v4l2` + `v4l2loopback` | supported |
+| PipeWire screen capture on Wayland | portal-backed screencast | supported |
+| PipeWire screen capture on X11 | hidden | intentionally disabled |
 
 ## Quick Install
 
@@ -45,7 +47,7 @@ Run the guided setup wizard:
 ./install.sh --all
 ```
 
-Install from the AUR after the package is published:
+Install from the AUR:
 
 ```bash
 paru -S obs-studio-kepler-legacy-bin
@@ -84,6 +86,7 @@ This project deliberately keeps a known-good legacy path:
 - user and system installers
 - an interactive setup wizard
 - upstream PipeWire explicit-sync/render-fix backports for Wayland screencast stability on NVIDIA
+- X11-specific hiding of PipeWire screencast sources so unsupported portal capture paths are not exposed in the source list
 - build scripts that download upstream sources automatically
 - ordered patch series with metadata and validation
 - Arch virtual camera setup helpers
@@ -134,7 +137,7 @@ sudo pacman -U dist/obs-studio-kepler-legacy-bin-*.pkg.tar.zst
 
 ### Install From AUR
 
-Once the AUR package is published, Arch users can install it with an AUR helper:
+Arch users can install it with an AUR helper:
 
 ```bash
 paru -S obs-studio-kepler-legacy-bin
@@ -227,6 +230,8 @@ The Arch package uses ABI-level dependencies for the audio stack, so it works wi
 For PulseAudio-compatible audio on Arch Linux, it also works with either `pipewire-pulse` or `pulseaudio`.
 
 If you want PipeWire-based features such as Wayland screen capture integration, keep the `pipewire` package installed on the host system.
+
+On X11 sessions, this project now hides PipeWire screencast sources intentionally. The source list only exposes them on Wayland, where the portal-based continuous capture path is actually usable.
 
 The optional Arch packaging recipe lives in:
 
