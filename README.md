@@ -294,6 +294,7 @@ The most common mistakes are:
 - expecting `HEVC NVENC` on unsupported Kepler hardware
 - missing `v4l2loopback` when trying to use the virtual camera
 - not having `~/.local/bin` on `PATH` after a user install
+- on X11 with NVIDIA, not disabling `AllowFlipping` when `Display Capture (XSHM)` causes panel/top-bar flicker
 
 Full troubleshooting steps are documented in [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md).
 

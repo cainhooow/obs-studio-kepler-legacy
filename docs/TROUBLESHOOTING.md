@@ -116,6 +116,44 @@ By default it uses:
 ~/.config/obs-studio-kepler-legacy/obs-studio
 ```
 
+## X11 Display Capture Flickers On NVIDIA
+
+### Symptom
+
+- `Display Capture (XSHM)` shows the desktop image correctly
+- the GNOME top bar or KDE panel flickers only inside OBS preview, recording, or stream output
+- the real desktop does not visibly flicker outside OBS
+- this happens on an X11 session with the proprietary NVIDIA driver
+
+### Cause
+
+On some `NVIDIA + X11 + compositor` stacks, page flipping interacts badly with X11 desktop capture.
+
+In this situation the issue is usually not a broken OBS source or a broken NVENC path. The practical mitigation is to disable the NVIDIA driver's `AllowFlipping` option for the running X11 session.
+
+### Fix
+
+Apply the setting for the current session:
+
+```bash
+nvidia-settings -a AllowFlipping=0
+```
+
+Confirm the effective value:
+
+```bash
+nvidia-settings -q AllowFlipping -t
+```
+
+If the command prints `0`, restart OBS and test the same `Display Capture (XSHM)` source again.
+
+### Notes
+
+- this is a host driver mitigation, not an OBS encoder fix
+- it is specific to X11 sessions and does not apply to the Wayland PipeWire path
+- depending on your desktop setup, you may need to reapply it after logging in again
+- if you want it persistent, add `nvidia-settings -a AllowFlipping=0` to your desktop autostart
+
 ## Wayland Capture Flickers In Preview Or Output
 
 ### Symptom
